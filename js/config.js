@@ -22,10 +22,10 @@ const CONFIG = {
       { id: "Б1-5", name: "Б1-5", coords: [270, 960], type: "room" },
       { id: "Б1-6", name: "Б1-6", coords: [350, 920], type: "room" },
       { id: "Б1-7", name: "Б1-7", coords: [270, 725], type: "room" },
-      { id: "Б1-8", name: "Б1-8", coords: [350, 882], type: "room" },
+      { id: "Б1-8", name: "Б1-8", coords: [350, 880], type: "room" },
       { id: "Б1-9", name: "Б1-9", coords: [270, 670], type: "room" },
       { id: "Б1-10", name: "Б1-10", coords: [350, 805], type: "room" },
-      { id: "Б1-11", name: "Б1-11", coords: [270, 592], type: "room" },
+      { id: "Б1-11", name: "Б1-11", coords: [270, 590], type: "room" },
       { id: "Б1-12", name: "Б1-12", coords: [350, 765], type: "room" },
       { id: "Туалет", name: "Туалет", coords: [350, 675], type: "toilet" },
       { id: "S1", name: "Лестница 1", coords: [320, 1075], type: "stair" },
@@ -33,15 +33,15 @@ const CONFIG = {
     ],
     2: [
       { id: "Б2-1", name: "Б2-1", coords: [285, 980], type: "room" },
-      { id: "Б2-2", name: "Б2-2", coords: [360, 943], type: "room" },
-      { id: "Б2-3", name: "Б2-3", coords: [285, 883], type: "room" },
+      { id: "Б2-2", name: "Б2-2", coords: [360, 940], type: "room" },
+      { id: "Б2-3", name: "Б2-3", coords: [285, 880], type: "room" },
       { id: "Б2-4", name: "Б2-4", coords: [360, 820], type: "room" },
       { id: "Б2-5", name: "Б2-5", coords: [285, 775], type: "room" },
-      { id: "Б2-6", name: "Б2-6", coords: [360, 713], type: "room" },
-      { id: "Б2-7", name: "Б2-7", coords: [285, 623], type: "room" },
-      { id: "Б2-8", name: "Б2-8", coords: [360, 652], type: "room" },
+      { id: "Б2-6", name: "Б2-6", coords: [360, 710], type: "room" },
+      { id: "Б2-7", name: "Б2-7", coords: [285, 620], type: "room" },
+      { id: "Б2-8", name: "Б2-8", coords: [360, 650], type: "room" },
       { id: "Б2-9", name: "Б2-9", coords: [285, 565], type: "room" },
-      { id: "Туалет", name: "Туалет", coords: [360, 613], type: "toilet" },
+      { id: "Туалет", name: "Туалет", coords: [360, 610], type: "toilet" },
       { id: "Б2-10", name: "Б2-10", coords: [360, 565], type: "room" },
       { id: "Б2-11", name: "Б2-11", coords: [285, 565], type: "room" },
       { id: "Б2-12", name: "Б2-12", coords: [360, 500], type: "room" },
@@ -50,23 +50,44 @@ const CONFIG = {
     ]
   },
 
-  // Коридорные узлы для правильной навигации
-  corridorNodes: {
-    1: [
-      { id: "C1_1", coords: [310, 1075], type: "corridor" }, // возле лестницы 1
-      { id: "C1_2", coords: [310, 1000], type: "corridor" }, // центральный коридор 1
-      { id: "C1_3", coords: [310, 800], type: "corridor" },  // центральный коридор 2
-      { id: "C1_4", coords: [310, 600], type: "corridor" },  // центральный коридор 3
-      { id: "C1_5", coords: [310, 465], type: "corridor" },  // возле лестницы 2
-    ],
-    2: [
-      { id: "C2_1", coords: [310, 1075], type: "corridor" }, // возле лестницы 1
-      { id: "C2_2", coords: [310, 1000], type: "corridor" }, // центральный коридор 1
-      { id: "C2_3", coords: [310, 800], type: "corridor" },  // центральный коридор 2
-      { id: "C2_4", coords: [310, 600], type: "corridor" },  // центральный коридор 3
-      { id: "C2_5", coords: [310, 470], type: "corridor" },  // возле лестницы 2
-    ]
-  },
+
+   // Коридорные точки у дверей комнат для правильной навигации
+corridorNodes: {
+  1: [
+    { id: "Door_Б1-1", coords: [300, 1060], type: "corridor", room: "Б1-1" },
+    { id: "Door_Б1-2", coords: [320, 1040], type: "corridor", room: "Б1-2" },
+    { id: "Door_Б1-3", coords: [300, 996], type: "corridor", room: "Б1-3" },
+    { id: "Door_Б1-4", coords: [320, 980], type: "corridor", room: "Б1-4" },
+    { id: "Door_Б1-5", coords: [300, 960], type: "corridor", room: "Б1-5" },
+    { id: "Door_Б1-6", coords: [320, 920], type: "corridor", room: "Б1-6" },
+    { id: "Door_Б1-7", coords: [300, 725], type: "corridor", room: "Б1-7" },
+    { id: "Door_Б1-8", coords: [320, 880], type: "corridor", room: "Б1-8" },
+    { id: "Door_Б1-9", coords: [300, 670], type: "corridor", room: "Б1-9" },
+    { id: "Door_Б1-10", coords: [320, 805], type: "corridor", room: "Б1-10" },
+    { id: "Door_Б1-11", coords: [300, 590], type: "corridor", room: "Б1-11" },
+    { id: "Door_Б1-12", coords: [320, 765], type: "corridor", room: "Б1-12" },
+    { id: "Door_Туалет1", coords: [320, 675], type: "corridor", room: "Туалет" },
+    { id: "Door_S1", coords: [320, 1075], type: "corridor", room: "S1" },
+    { id: "Door_S2", coords: [310, 460], type: "corridor", room: "S2" }
+  ],
+  2: [
+    { id: "Door_Б2-1", coords: [301, 980], type: "corridor", room: "Б2-1" },
+    { id: "Door_Б2-2", coords: [320, 940], type: "corridor", room: "Б2-2" },
+    { id: "Door_Б2-3", coords: [301, 880], type: "corridor", room: "Б2-3" },
+    { id: "Door_Б2-4", coords: [320, 820], type: "corridor", room: "Б2-4" },
+    { id: "Door_Б2-5", coords: [301, 775], type: "corridor", room: "Б2-5" },
+    { id: "Door_Б2-6", coords: [320, 710], type: "corridor", room: "Б2-6" },
+    { id: "Door_Б2-7", coords: [301, 620], type: "corridor", room: "Б2-7" },
+    { id: "Door_Б2-8", coords: [320, 650], type: "corridor", room: "Б2-8" },
+    { id: "Door_Б2-9", coords: [301, 565], type: "corridor", room: "Б2-9" },
+    { id: "Door_Б2-10", coords: [320, 565], type: "corridor", room: "Б2-10" },
+    { id: "Door_Б2-11", coords: [301, 565], type: "corridor", room: "Б2-11" },
+    { id: "Door_Б2-12", coords: [320, 500], type: "corridor", room: "Б2-12" },
+    { id: "Door_Туалет2", coords: [320, 610], type: "corridor", room: "Туалет" },
+    { id: "Door_S1_2", coords: [335, 1040], type: "corridor", room: "S1" },
+    { id: "Door_S2_2", coords: [325, 420], type: "corridor", room: "S2" }
+  ]
+},
 
   routing: {
     maxCorridorDistance: 100,  // Максимальное расстояние между коридорными узлами
