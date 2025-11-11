@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Университетская Интерактивная Картографическая Система</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div id="map"></div>
+
+  <div id="panel">
+    <div>
+      <label>Из аудитории:</label>
+      <input id="fromRoom" value="101" />
+    </div>
+    <div>
+      <label>В аудиторию:</label>
+      <input id="toRoom" value="201" />
+    </div>
+    <button id="findRoute">Построить маршрут</button>
+    <div id="floorSwitcher">
+      <button id="floor1">1 этаж</button>
+      <button id="floor2">2 этаж</button>
+    </div>
+  </div>
+
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/generator_edge.js"></script>
+  <script src="js/main_script.js"></script>
+
+
+</body>
+</html>
