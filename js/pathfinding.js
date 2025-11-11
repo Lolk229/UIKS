@@ -1,39 +1,63 @@
-// Алгоритм поиска пути
+// Класс для поиска пути с использованием коридорной сети
 class PathFinder {
   constructor(points, corridorNodes) {
     this.points = points;
     this.corridorNodes = corridorNodes;
     this.edges = this.generateEdges();
+    this.allNodes = this.getAllNodes();
+  }
+
+  getAllNodes() {
+    const nodes = [];
+
+    // Добавляем все комнаты, лестницы, туалеты
+    Object.keys(this.points).forEach(floor => {
+      this.points[floor].forEach(p => nodes.push({ ...p, floor: Number(floor) }));
+    });
+
+    // Добавляем коридорные узлы
+    Object.keys(this.corridorNodes).forEach(floor => {
+      const floorNum = Number(floor);
+      if (this.corridorNodes[floorNum]) {
+        this.corridorNodes[floorNum].forEach(node => {
+          nodes.push({ ...node, floor: floorNum });
+        });
+      }
+    });
+
+    return nodes;
   }
 
   generateEdges() {
-    // Генерация рёбер с учетом коридорных узлов
     const edges = [];
 
+    // Создаем связи для каждого этажа
     for (const [floor, pts] of Object.entries(this.points)) {
       const floorNum = Number(floor);
       const corridors = this.corridorNodes[floorNum] || [];
 
-      // Соединяем комнаты с ближайшими коридорными узлами
+      // 1. Соединяем комнаты с ближайшими коридорными узлами
       pts.forEach(point => {
         const nearestCorridors = this.findNearestCorridors(point, corridors, 2);
         nearestCorridors.forEach(corridor => {
           const dist = this.calculateDistance(point.coords, corridor.coords);
-          edges.push({
-            from: point.id,
-            to: corridor.id,
-            distance: dist,
-            floor: floorNum,
-            type: 'room_to_corridor'
-          });
+          if (dist <= 100) {
+            edges.push({
+              from: point.id,
+              to: corridor.id,
+              distance: dist,
+              floor: floorNum,
+              type: 'room_to_corridor'
+            });
+          }
         });
       });
 
-      // Соединяем коридорные узлы между собой
+      // 2. Соединяем коридорные узлы между собой
       for (let i = 0; i < corridors.length; i++) {
         for (let j = i + 1; j < corridors.length; j++) {
           const dist = this.calculateDistance(corridors[i].coords, corridors[j].coords);
-          if (dist <= 200) { // Максимальное расстояние между коридорными узлами
+          if (dist <= 300) {
             edges.push({
               from: corridors[i].id,
               to: corridors[j].id,
@@ -46,13 +70,15 @@ class PathFinder {
       }
     }
 
-    // Соединяем лестницы между этажами
+    // 3. Соединяем лестницы между этажами
     this.addStairConnections(edges);
 
     return edges;
   }
 
   findNearestCorridors(point, corridors, count = 2) {
+    if (corridors.length === 0) return [];
+
     return corridors
       .map(corridor => ({
         corridor,
@@ -68,12 +94,136 @@ class PathFinder {
   }
 
   addStairConnections(edges) {
-    // Логика соединения лестниц между этажами
-    // ... существующий код
+    const floors = Object.keys(this.points).map(Number).sort();
+
+    for (let i = 0; i < floors.length - 1; i++) {
+      const floor1 = floors[i];
+      const floor2 = floors[i + 1];
+
+      const stairs1 = this.points[floor1].filter(p => p.type === 'stair');
+      const stairs2 = this.points[floor2].filter(p => p.type === 'stair');
+
+      stairs1.forEach(stair1 => {
+        stairs2.forEach(stair2 => {
+          const coordDistance = this.calculateDistance(stair1.coords, stair2.coords);
+
+          if (coordDistance <= 50) {
+            edges.push({
+              from: stair1.id,
+              to: stair2.id,
+              fromFloor: floor1,
+              toFloor: floor2,
+              distance: 10,
+              type: 'between_floors'
+            });
+          }
+        });
+      });
+    }
   }
 
   findShortestPath(startId, endId) {
+    if (!this.allNodes || this.allNodes.length === 0) {
+      console.error("Узлы не инициализированы");
+      return [];
+    }
+
+    const distances = {};
+    const prev = {};
+    const queue = [];
+
+    // Инициализация
+    this.allNodes.forEach(n => {
+      const key = `${n.id}_${n.floor}`;
+      distances[key] = Infinity;
+      queue.push(key);
+    });
+
+    const startNode = this.allNodes.find(n => n.id === startId);
+    if (!startNode) {
+      console.error(`Начальная точка ${startId} не найдена`);
+      return [];
+    }
+
+    const startKey = `${startNode.id}_${startNode.floor}`;
+    distances[startKey] = 0;
+
     // Алгоритм Дейкстры
-    // ... существующий код
+    while (queue.length > 0) {
+      const u = queue.reduce((min, n) =>
+        distances[n] < distances[min] ? n : min
+      );
+      queue.splice(queue.indexOf(u), 1);
+
+      if (distances[u] === Infinity) break;
+
+      const [uId, uFloor] = u.split("_");
+      const uFloorNum = Number(uFloor);
+
+      this.edges.forEach(e => {
+        let neighbor, neighborFloor;
+
+        if (e.type === 'room_to_corridor' || e.type === 'corridor_to_corridor') {
+          if (e.floor !== uFloorNum) return;
+
+          if (e.from === uId) {
+            neighbor = e.to;
+            neighborFloor = uFloorNum;
+          } else if (e.to === uId) {
+            neighbor = e.from;
+            neighborFloor = uFloorNum;
+          } else {
+            return;
+          }
+        } else if (e.type === 'between_floors') {
+          if (e.from === uId && e.fromFloor === uFloorNum) {
+            neighbor = e.to;
+            neighborFloor = e.toFloor;
+          } else if (e.to === uId && e.toFloor === uFloorNum) {
+            neighbor = e.from;
+            neighborFloor = e.fromFloor;
+          } else {
+            return;
+          }
+        } else {
+          return;
+        }
+
+        const vKey = `${neighbor}_${neighborFloor}`;
+        if (!queue.includes(vKey)) return;
+
+        const alt = distances[u] + e.distance;
+        if (alt < distances[vKey]) {
+          distances[vKey] = alt;
+          prev[vKey] = u;
+        }
+      });
+    }
+
+    // Находим путь к конечной точке
+    const possibleEnds = Object.keys(distances).filter(k => k.startsWith(endId + '_'));
+    if (possibleEnds.length === 0) {
+      console.error(`Конечная точка ${endId} не найдена`);
+      return [];
+    }
+
+    const bestEnd = possibleEnds.reduce((a, b) =>
+      distances[a] < distances[b] ? a : b
+    );
+
+    if (distances[bestEnd] === Infinity) {
+      console.error(`Путь от ${startId} до ${endId} не найден`);
+      return [];
+    }
+
+    // Восстанавливаем путь
+    const path = [];
+    let u = bestEnd;
+    while (u) {
+      path.unshift(u);
+      u = prev[u];
+    }
+
+    return path;
   }
 }
