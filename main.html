@@ -13,11 +13,11 @@
   <div id="panel">
     <div>
       <label>Из аудитории:</label>
-      <input id="fromRoom" value="101" />
+      <input id="fromRoom" value="" />
     </div>
     <div>
       <label>В аудиторию:</label>
-      <input id="toRoom" value="201" />
+      <input id="toRoom" value="" />
     </div>
     <button id="findRoute">Построить маршрут</button>
     <div id="floorSwitcher">
@@ -28,8 +28,11 @@
 
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/generator_edge.js"></script>
-  <script src="js/main_script.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/map-renderer.js"></script>
+  <script src="js/pathfinding.js"></script>
+  <script src="js/route-drawer.js"></script>
+  <script src="js/main.js"></script>
 
 
 </body>
