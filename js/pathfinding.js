@@ -3,85 +3,88 @@ class PathFinder {
   constructor(points, corridorNodes) {
     this.points = points;
     this.corridorNodes = corridorNodes;
-    this.edges = this.generateEdges();
-    this.allNodes = this.getAllNodes();
+    this.graph = this.buildGraph();
   }
   
-  getAllNodes() {
-    const nodes = [];
+  buildGraph() {
+    const graph = new Map();
     
-    // Добавляем все комнаты, лестницы, туалеты
+    console.log("Строим граф навигации...");
+    
+    // Инициализируем граф для всех узлов
     Object.keys(this.points).forEach(floor => {
-      this.points[floor].forEach(p => nodes.push({ ...p, floor: Number(floor) }));
-    });
-    
-    // Добавляем коридорные узлы
-    Object.keys(this.corridorNodes).forEach(floor => {
       const floorNum = Number(floor);
+      
+      // Добавляем комнаты
+      this.points[floor].forEach(point => {
+        const nodeId = `${point.id}_${floorNum}`;
+        graph.set(nodeId, { 
+          ...point, 
+          floor: floorNum, 
+          neighbors: [] 
+        });
+      });
+      
+      // Добавляем коридорные точки
       if (this.corridorNodes[floorNum]) {
-        this.corridorNodes[floorNum].forEach(node => {
-          nodes.push({ ...node, floor: floorNum });
+        this.corridorNodes[floorNum].forEach(corridor => {
+          const nodeId = `${corridor.id}_${floorNum}`;
+          graph.set(nodeId, { 
+            ...corridor, 
+            floor: floorNum, 
+            neighbors: [] 
+          });
         });
       }
     });
     
-    return nodes;
-  }
-  
-  generateEdges() {
-    const edges = [];
-    
-    // Создаем связи для каждого этажа
-    for (const [floor, pts] of Object.entries(this.points)) {
+    // Создаем связи
+    Object.keys(this.points).forEach(floor => {
       const floorNum = Number(floor);
       const corridors = this.corridorNodes[floorNum] || [];
       
-      // 1. Соединяем комнаты ТОЛЬКО с их дверными коридорными точками
-      pts.forEach(point => {
+      // 1. Соединяем комнаты с их дверными точками
+      this.points[floor].forEach(point => {
         const doorPoint = corridors.find(c => c.room === point.id);
         if (doorPoint) {
-          const dist = this.calculateDistance(point.coords, doorPoint.coords);
-          edges.push({
-            from: point.id,
-            to: doorPoint.id,
-            distance: dist,
-            floor: floorNum,
-            type: 'room_to_door'
-          });
+          const roomId = `${point.id}_${floorNum}`;
+          const doorId = `${doorPoint.id}_${floorNum}`;
+          
+          const distance = this.calculateDistance(point.coords, doorPoint.coords);
+          
+          // Двусторонняя связь
+          if (graph.has(roomId)) {
+            graph.get(roomId).neighbors.push({ id: doorId, distance });
+          }
+          if (graph.has(doorId)) {
+            graph.get(doorId).neighbors.push({ id: roomId, distance });
+          }
+          
+          console.log(`Связь: ${point.id} <-> ${doorPoint.id}, расстояние: ${Math.round(distance)}`);
         }
       });
       
-      // 2. Соединяем все коридорные точки между собой (создаем полную сеть коридоров)
+      // 2. Соединяем все коридорные точки между собой
       for (let i = 0; i < corridors.length; i++) {
         for (let j = i + 1; j < corridors.length; j++) {
-          const dist = this.calculateDistance(corridors[i].coords, corridors[j].coords);
-          // Увеличиваем максимальное расстояние для соединения коридорных точек
-          if (dist <= 400) {
-            edges.push({
-              from: corridors[i].id,
-              to: corridors[j].id,
-              distance: dist,
-              floor: floorNum,
-              type: 'corridor_to_corridor'
-            });
+          const corridor1Id = `${corridors[i].id}_${floorNum}`;
+          const corridor2Id = `${corridors[j].id}_${floorNum}`;
+          
+          const distance = this.calculateDistance(corridors[i].coords, corridors[j].coords);
+          
+          // Двусторонняя связь
+          if (graph.has(corridor1Id)) {
+            graph.get(corridor1Id).neighbors.push({ id: corridor2Id, distance });
+          }
+          if (graph.has(corridor2Id)) {
+            graph.get(corridor2Id).neighbors.push({ id: corridor1Id, distance });
           }
         }
       }
-    }
+    });
     
     // 3. Соединяем лестницы между этажами
-    this.addStairConnections(edges);
-    
-    return edges;
-  }
-
-  calculateDistance(coords1, coords2) {
-    return Math.hypot(coords1[0] - coords2[0], coords1[1] - coords2[1]);
-  }
-
-  addStairConnections(edges) {
     const floors = Object.keys(this.points).map(Number).sort();
-    
     for (let i = 0; i < floors.length - 1; i++) {
       const floor1 = floors[i];
       const floor2 = floors[i + 1];
@@ -94,122 +97,99 @@ class PathFinder {
           const coordDistance = this.calculateDistance(stair1.coords, stair2.coords);
           
           if (coordDistance <= 50) {
-            edges.push({
-              from: stair1.id,
-              to: stair2.id,
-              fromFloor: floor1,
-              toFloor: floor2,
-              distance: 10,
-              type: 'between_floors'
-            });
+            const stair1Id = `${stair1.id}_${floor1}`;
+            const stair2Id = `${stair2.id}_${floor2}`;
+            
+            // Двусторонняя связь между этажами
+            if (graph.has(stair1Id)) {
+              graph.get(stair1Id).neighbors.push({ id: stair2Id, distance: 10 });
+            }
+            if (graph.has(stair2Id)) {
+              graph.get(stair2Id).neighbors.push({ id: stair1Id, distance: 10 });
+            }
+            
+            console.log(`Межэтажная связь: ${stair1.id} (${floor1}) <-> ${stair2.id} (${floor2})`);
           }
         });
       });
     }
+    
+    console.log(`Граф построен: ${graph.size} узлов`);
+    
+    // Отладка для Door_Б1-10
+    const doorB110 = graph.get('Door_Б1-10_1');
+    if (doorB110) {
+      console.log(`Door_Б1-10 имеет ${doorB110.neighbors.length} соседей:`, 
+        doorB110.neighbors.slice(0, 5).map(n => n.id));
+    }
+    
+    return graph;
+  }
+
+  calculateDistance(coords1, coords2) {
+    return Math.hypot(coords1[0] - coords2[0], coords1[1] - coords2[1]);
   }
 
   findShortestPath(startId, endId) {
-    if (!this.allNodes || this.allNodes.length === 0) {
-      console.error("Узлы не инициализированы");
-      return [];
+    console.log(`Поиск пути от ${startId} до ${endId}`);
+    
+    // Находим начальную точку на любом этаже
+    let startNodeId = null;
+    for (const [nodeId, node] of this.graph.entries()) {
+      if (node.id === startId) {
+        startNodeId = nodeId;
+        break;
+      }
     }
-
-    const distances = {};
-    const prev = {};
-    const queue = [];
-
-    // Инициализация
-    this.allNodes.forEach(n => {
-      const key = `${n.id}_${n.floor}`;
-      distances[key] = Infinity;
-      queue.push(key);
-    });
-
-    const startNode = this.allNodes.find(n => n.id === startId);
-    if (!startNode) {
+    
+    if (!startNodeId) {
       console.error(`Начальная точка ${startId} не найдена`);
       return [];
     }
     
-    const startKey = `${startNode.id}_${startNode.floor}`;
-    distances[startKey] = 0;
-
-    // Алгоритм Дейкстры
+    // BFS поиск
+    const queue = [startNodeId];
+    const visited = new Set();
+    const parent = new Map();
+    
     while (queue.length > 0) {
-      const u = queue.reduce((min, n) =>
-        distances[n] < distances[min] ? n : min
-      );
-      queue.splice(queue.indexOf(u), 1);
-
-      if (distances[u] === Infinity) break;
-
-      const [uId, uFloor] = u.split("_");
-      const uFloorNum = Number(uFloor);
-
-      this.edges.forEach(e => {
-        let neighbor, neighborFloor;
+      const currentId = queue.shift();
+      
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+      
+      const currentNode = this.graph.get(currentId);
+      if (!currentNode) continue;
+      
+      console.log(`Обрабатываем: ${currentId} (соседей: ${currentNode.neighbors.length})`);
+      
+      // Проверяем, достигли ли цели
+      if (currentNode.id === endId) {
+        console.log(`✅ Цель найдена: ${currentId}`);
         
-        if (e.type === 'room_to_door' || e.type === 'corridor_to_corridor') {
-          if (e.floor !== uFloorNum) return;
-          
-          if (e.from === uId) {
-            neighbor = e.to;
-            neighborFloor = uFloorNum;
-          } else if (e.to === uId) {
-            neighbor = e.from;
-            neighborFloor = uFloorNum;
-          } else {
-            return;
-          }
-        } else if (e.type === 'between_floors') {
-          if (e.from === uId && e.fromFloor === uFloorNum) {
-            neighbor = e.to;
-            neighborFloor = e.toFloor;
-          } else if (e.to === uId && e.toFloor === uFloorNum) {
-            neighbor = e.from;
-            neighborFloor = e.fromFloor;
-          } else {
-            return;
-          }
-        } else {
-          return;
+        // Восстанавливаем путь
+        const path = [];
+        let nodeId = currentId;
+        while (nodeId) {
+          path.unshift(nodeId);
+          nodeId = parent.get(nodeId);
         }
-
-        const vKey = `${neighbor}_${neighborFloor}`;
-        if (!queue.includes(vKey)) return;
         
-        const alt = distances[u] + e.distance;
-        if (alt < distances[vKey]) {
-          distances[vKey] = alt;
-          prev[vKey] = u;
+        console.log(`Путь найден (${path.length} шагов):`, path);
+        return path;
+      }
+      
+      // Обрабатываем соседей
+      currentNode.neighbors.forEach(neighbor => {
+        if (!visited.has(neighbor.id) && !parent.has(neighbor.id)) {
+          parent.set(neighbor.id, currentId);
+          queue.push(neighbor.id);
         }
       });
     }
-
-    // Находим путь к конечной точке
-    const possibleEnds = Object.keys(distances).filter(k => k.startsWith(endId + '_'));
-    if (possibleEnds.length === 0) {
-      console.error(`Конечная точка ${endId} не найдена`);
-      return [];
-    }
     
-    const bestEnd = possibleEnds.reduce((a, b) =>
-      distances[a] < distances[b] ? a : b
-    );
-
-    if (distances[bestEnd] === Infinity) {
-      console.error(`Путь от ${startId} до ${endId} не найден`);
-      return [];
-    }
-
-    // Восстанавливаем путь
-    const path = [];
-    let u = bestEnd;
-    while (u) {
-      path.unshift(u);
-      u = prev[u];
-    }
-    
-    return path;
+    console.error(`❌ Путь от ${startId} до ${endId} не найден`);
+    console.log(`Посещено узлов: ${visited.size}`);
+    return [];
   }
 }
