@@ -6,15 +6,15 @@ class PathFinder {
     this.edges = this.generateEdges();
     this.allNodes = this.getAllNodes();
   }
-
+  
   getAllNodes() {
     const nodes = [];
-
+    
     // Добавляем все комнаты, лестницы, туалеты
     Object.keys(this.points).forEach(floor => {
       this.points[floor].forEach(p => nodes.push({ ...p, floor: Number(floor) }));
     });
-
+    
     // Добавляем коридорные узлы
     Object.keys(this.corridorNodes).forEach(floor => {
       const floorNum = Number(floor);
@@ -24,40 +24,39 @@ class PathFinder {
         });
       }
     });
-
+    
     return nodes;
   }
-
+  
   generateEdges() {
     const edges = [];
-
+    
     // Создаем связи для каждого этажа
     for (const [floor, pts] of Object.entries(this.points)) {
       const floorNum = Number(floor);
       const corridors = this.corridorNodes[floorNum] || [];
-
-      // 1. Соединяем комнаты с ближайшими коридорными узлами
+      
+      // 1. Соединяем комнаты ТОЛЬКО с их дверными коридорными точками
       pts.forEach(point => {
-        const nearestCorridors = this.findNearestCorridors(point, corridors, 2);
-        nearestCorridors.forEach(corridor => {
-          const dist = this.calculateDistance(point.coords, corridor.coords);
-          if (dist <= 100) {
-            edges.push({
-              from: point.id,
-              to: corridor.id,
-              distance: dist,
-              floor: floorNum,
-              type: 'room_to_corridor'
-            });
-          }
-        });
+        const doorPoint = corridors.find(c => c.room === point.id);
+        if (doorPoint) {
+          const dist = this.calculateDistance(point.coords, doorPoint.coords);
+          edges.push({
+            from: point.id,
+            to: doorPoint.id,
+            distance: dist,
+            floor: floorNum,
+            type: 'room_to_door'
+          });
+        }
       });
-
-      // 2. Соединяем коридорные узлы между собой
+      
+      // 2. Соединяем все коридорные точки между собой (создаем полную сеть коридоров)
       for (let i = 0; i < corridors.length; i++) {
         for (let j = i + 1; j < corridors.length; j++) {
           const dist = this.calculateDistance(corridors[i].coords, corridors[j].coords);
-          if (dist <= 300) {
+          // Увеличиваем максимальное расстояние для соединения коридорных точек
+          if (dist <= 400) {
             edges.push({
               from: corridors[i].id,
               to: corridors[j].id,
@@ -69,24 +68,11 @@ class PathFinder {
         }
       }
     }
-
+    
     // 3. Соединяем лестницы между этажами
     this.addStairConnections(edges);
-
+    
     return edges;
-  }
-
-  findNearestCorridors(point, corridors, count = 2) {
-    if (corridors.length === 0) return [];
-
-    return corridors
-      .map(corridor => ({
-        corridor,
-        distance: this.calculateDistance(point.coords, corridor.coords)
-      }))
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, count)
-      .map(item => item.corridor);
   }
 
   calculateDistance(coords1, coords2) {
@@ -95,18 +81,18 @@ class PathFinder {
 
   addStairConnections(edges) {
     const floors = Object.keys(this.points).map(Number).sort();
-
+    
     for (let i = 0; i < floors.length - 1; i++) {
       const floor1 = floors[i];
       const floor2 = floors[i + 1];
-
+      
       const stairs1 = this.points[floor1].filter(p => p.type === 'stair');
       const stairs2 = this.points[floor2].filter(p => p.type === 'stair');
-
+      
       stairs1.forEach(stair1 => {
         stairs2.forEach(stair2 => {
           const coordDistance = this.calculateDistance(stair1.coords, stair2.coords);
-
+          
           if (coordDistance <= 50) {
             edges.push({
               from: stair1.id,
@@ -144,7 +130,7 @@ class PathFinder {
       console.error(`Начальная точка ${startId} не найдена`);
       return [];
     }
-
+    
     const startKey = `${startNode.id}_${startNode.floor}`;
     distances[startKey] = 0;
 
@@ -162,10 +148,10 @@ class PathFinder {
 
       this.edges.forEach(e => {
         let neighbor, neighborFloor;
-
-        if (e.type === 'room_to_corridor' || e.type === 'corridor_to_corridor') {
+        
+        if (e.type === 'room_to_door' || e.type === 'corridor_to_corridor') {
           if (e.floor !== uFloorNum) return;
-
+          
           if (e.from === uId) {
             neighbor = e.to;
             neighborFloor = uFloorNum;
@@ -191,7 +177,7 @@ class PathFinder {
 
         const vKey = `${neighbor}_${neighborFloor}`;
         if (!queue.includes(vKey)) return;
-
+        
         const alt = distances[u] + e.distance;
         if (alt < distances[vKey]) {
           distances[vKey] = alt;
@@ -206,7 +192,7 @@ class PathFinder {
       console.error(`Конечная точка ${endId} не найдена`);
       return [];
     }
-
+    
     const bestEnd = possibleEnds.reduce((a, b) =>
       distances[a] < distances[b] ? a : b
     );
@@ -223,7 +209,7 @@ class PathFinder {
       path.unshift(u);
       u = prev[u];
     }
-
+    
     return path;
   }
 }
