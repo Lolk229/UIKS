@@ -1,10 +1,12 @@
 // Навигатор по зданию: граф "комната → дверь → ось коридора → дверь → комната"
-// Требования к данным (CONFIG):
+// Ожидаемые данные (CONFIG):
 // - CONFIG.points[floor]: [{ id, type: 'room'|'stair'|'toilet', coords: [x,y] }, ...]
-// - CONFIG.corridorNodes[floor]: 
-//     - двери: { id, type: 'door', room: '<ID из points на этом этаже>', coords: [x,y] }
-//     - ось коридора: { id, type: 'corridor', coords: [x,y] }
-// - CONFIG.routing: { maxCorridorDistance, maxRoomToCorridorDistance, stairConnectionDistance }
+// - CONFIG.corridorNodes[floor]:
+//     двери:   { id, type: 'door',     room: '<id из points>', coords: [x,y] }
+//     коридор: { id, type: 'corridor',                         coords: [x,y] }
+// - CONFIG.routing (необязательно):
+//   { maxCorridorDistance, maxRoomToCorridorDistance, stairConnectionDistance,
+//     axisTolerance, doorAlignTolerance }
 
 class PathFinder {
   constructor(points, corridorNodes) {
@@ -13,10 +15,7 @@ class PathFinder {
     this.graph = this.buildGraph();
   }
 
-  // Внутренние утилиты
-  static dist(a, b) {
-    return Math.hypot(a[0] - b[0], a[1] - b[1]);
-  }
+  static dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
 
   static addEdge(graph, aId, bId, distance) {
     if (!graph.has(aId) || !graph.has(bId)) return;
@@ -28,64 +27,59 @@ class PathFinder {
 
   buildGraph() {
     const graph = new Map();
-    const AXIS_TOLERANCE = 18; // допуск для группировки по оси (почти одинаковый X или Y)
 
     const {
-      maxCorridorDistance = 140,
-      maxRoomToCorridorDistance = 90,
-      stairConnectionDistance = 50
-    } = (CONFIG && CONFIG.routing) ? CONFIG.routing : {};
+      maxCorridorDistance = (CONFIG?.routing?.maxCorridorDistance ?? 140),
+      maxRoomToCorridorDistance = (CONFIG?.routing?.maxRoomToCorridorDistance ?? 90),
+      stairConnectionDistance = (CONFIG?.routing?.stairConnectionDistance ?? 50),
+      axisTolerance = (CONFIG?.routing?.axisTolerance ?? 18),
+      doorAlignTolerance = (CONFIG?.routing?.doorAlignTolerance ?? 16)
+    } = CONFIG?.routing || {};
 
-    // 1) Регистрируем все узлы: комнаты/лестницы/туалеты
+    // 1) Регистрируем комнаты/лестницы/туалеты
     Object.entries(this.points).forEach(([floor, arr]) => {
       const f = Number(floor);
       arr.forEach(p => {
-        const nodeId = `${p.id}_${f}`;
-        graph.set(nodeId, {
-          id: p.id,
-          floor: f,
-          type: p.type,   // 'room' | 'stair' | 'toilet'
-          coords: p.coords,
-          neighbors: []
+        const id = `${p.id}_${f}`;
+        graph.set(id, {
+          id: p.id, floor: f, type: p.type, coords: p.coords, neighbors: []
         });
       });
     });
 
-    // 2) Регистрируем все corridorNodes: двери и осевые точки коридора
+    // 2) Регистрируем corridorNodes (door + corridor)
     Object.entries(this.corridorNodes).forEach(([floor, arr]) => {
       const f = Number(floor);
       arr.forEach(n => {
-        const nodeId = `${n.id}_${f}`;
-        graph.set(nodeId, {
+        const id = `${n.id}_${f}`;
+        graph.set(id, {
           id: n.id,
           floor: f,
-          type: n.type || 'corridor', // 'door' | 'corridor'
-          room: n.room || null,       // для дверей
+          type: n.type || 'corridor',
+          room: n.room || null,
           coords: n.coords,
           neighbors: []
         });
       });
     });
 
-    // 3) Комната -> дверь (поддержка нескольких дверей для одной комнаты)
+    // 3) Комната → (все её) двери
     Object.entries(this.points).forEach(([floor, arr]) => {
       const f = Number(floor);
       const doors = (this.corridorNodes[f] || []).filter(n => n.type === 'door');
       arr.forEach(room => {
-        doors
-          .filter(d => d.room === room.id)
-          .forEach(door => {
-            PathFinder.addEdge(
-              graph,
-              `${room.id}_${f}`,
-              `${door.id}_${f}`,
-              PathFinder.dist(room.coords, door.coords)
-            );
-          });
+        doors.filter(d => d.room === room.id).forEach(door => {
+          PathFinder.addEdge(
+            graph,
+            `${room.id}_${f}`,
+            `${door.id}_${f}`,
+            PathFinder.dist(room.coords, door.coords)
+          );
+        });
       });
     });
 
-    // 4) Дверь -> ближайшие (1–2) corridor-точки
+    // 4) Дверь → ближайшие 1–2 corridor-точки (только с выравниванием по X или Y)
     Object.entries(this.corridorNodes).forEach(([floor, arr]) => {
       const f = Number(floor);
       const doors = arr.filter(n => n.type === 'door');
@@ -93,20 +87,26 @@ class PathFinder {
 
       doors.forEach(d => {
         const dId = `${d.id}_${f}`;
-        const nearby = corridors
-          .map(c => ({ c, d: PathFinder.dist(d.coords, c.coords) }))
-          .filter(o => o.d <= maxRoomToCorridorDistance)
+        const aligned = corridors
+          .map(c => {
+            const dx = Math.abs(d.coords[0] - c.coords[0]);
+            const dy = Math.abs(d.coords[1] - c.coords[1]);
+            return {
+              c,
+              d: PathFinder.dist(d.coords, c.coords),
+              aligned: (dx <= doorAlignTolerance) || (dy <= doorAlignTolerance)
+            };
+          })
+          .filter(o => o.d <= maxRoomToCorridorDistance && o.aligned)
           .sort((a, b) => a.d - b.d)
-          .slice(0, 2); // максимум 2 привязки для устойчивости
-
-        // Если рядом нет ни одной осевой точки — не связываем насильно, лучше доложить точку в CONFIG
-        nearby.forEach(n => {
+          .slice(0, 2);
+        aligned.forEach(n => {
           PathFinder.addEdge(graph, dId, `${n.c.id}_${f}`, n.d);
         });
       });
     });
 
-    // 5) Corridor -> corridor: только последовательные связи в «линейных» группах
+    // 5) Corridor → corridor: только последовательные связи в группах по оси
     Object.entries(this.corridorNodes).forEach(([floor, arr]) => {
       const f = Number(floor);
       const corridors = arr.filter(n => n.type === 'corridor');
@@ -114,7 +114,7 @@ class PathFinder {
       // Горизонтальные группы (почти одинаковый Y)
       const groupsH = [];
       corridors.forEach(c => {
-        let g = groupsH.find(g => Math.abs(g.y - c.coords[1]) <= AXIS_TOLERANCE);
+        let g = groupsH.find(g => Math.abs(g.y - c.coords[1]) <= axisTolerance);
         if (!g) { g = { y: c.coords[1], items: [] }; groupsH.push(g); }
         g.items.push(c);
       });
@@ -132,7 +132,7 @@ class PathFinder {
       // Вертикальные группы (почти одинаковый X)
       const groupsV = [];
       corridors.forEach(c => {
-        let g = groupsV.find(g => Math.abs(g.x - c.coords[0]) <= AXIS_TOLERANCE);
+        let g = groupsV.find(g => Math.abs(g.x - c.coords[0]) <= axisTolerance);
         if (!g) { g = { x: c.coords[0], items: [] }; groupsV.push(g); }
         g.items.push(c);
       });
@@ -148,7 +148,7 @@ class PathFinder {
       });
     });
 
-    // 6) Межэтажные связи для лестниц
+    // 6) Лестницы между этажами
     const floors = Object.keys(this.points).map(Number).sort();
     for (let i = 0; i < floors.length - 1; i++) {
       const f1 = floors[i], f2 = floors[i + 1];
@@ -168,11 +168,10 @@ class PathFinder {
     return graph;
   }
 
-  // Поиск кратчайшего пути (BFS по ребрам графа)
+  // BFS
   findShortestPath(startId, endId) {
     console.log(`Поиск пути от ${startId} до ${endId}`);
 
-    // Находим стартовый nodeId (на текущем этаже или любом, если id уникален)
     let startNodeId = null;
     for (const [id, node] of this.graph.entries()) {
       if (node.id === startId) { startNodeId = id; break; }
@@ -195,13 +194,9 @@ class PathFinder {
       if (!node) continue;
 
       if (node.id === endId) {
-        // Восстановление пути в nodeId-ключах ("id_floor")
         const path = [];
         let u = cur;
-        while (u) {
-          path.unshift(u);
-          u = parent.get(u);
-        }
+        while (u) { path.unshift(u); u = parent.get(u); }
         console.log("Путь найден:", path);
         return path;
       }
