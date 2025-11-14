@@ -35,7 +35,7 @@ class MapRenderer {
     });
 
     // Опционально: показываем коридорные узлы для отладки (закомментировано)
-    // this.renderCorridorNodes(floor);
+     this.renderCorridorNodes(floor);
   }
 
   renderCorridorNodes(floor) {
