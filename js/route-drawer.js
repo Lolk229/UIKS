@@ -12,7 +12,12 @@ class RouteDrawer {
     if (!path || path.length === 0) return;
 
     // Фильтруем узлы текущего этажа
-    const keys = path.filter((k) => Number(k.split("_")[1]) === currentFloor);
+    // ИСПРАВЛЕНО: этаж - это ПОСЛЕДНИЙ элемент после split("_")
+    const keys = path.filter((k) => {
+      const parts = k.split("_");
+      const floor = Number(parts[parts.length - 1]);
+      return floor === currentFloor;
+    });
     if (keys.length < 1) return;
 
     const nodes = this.getPathNodes(keys, currentFloor);
@@ -34,7 +39,7 @@ class RouteDrawer {
       const isCorrPrev = prev.type === "corridor";
       const isCorrCur = cur.type === "corridor";
 
-      // Если сегмент Door↔Corridor — вставляем ортогональный "L-соединение"
+      // Если сегмент Door↔Corridor — вставляем ортогональное "L-соединение"
       if ((isDoorPrev && isCorrCur) || (isCorrPrev && isDoorCur)) {
         const elbow = [prev.coords[0], cur.coords[1]]; // [door.y, corridor.x]
         if (!this.samePoint(poly[poly.length - 1], prev.coords)) poly.push(prev.coords);
@@ -62,7 +67,10 @@ class RouteDrawer {
 
   getPathNodes(pathKeys, floor) {
     return pathKeys.map((key) => {
-      const [id] = key.split("_");
+      // ИСПРАВЛЕНО: ID - это всё кроме последнего элемента после split("_")
+      const parts = key.split("_");
+      const id = parts.slice(0, -1).join("_");
+      
       let node = CONFIG.points[floor]?.find((p) => p.id === id);
       if (node) return { id, type: node.type, coords: node.coords };
       node = CONFIG.corridorNodes[floor]?.find((n) => n.id === id);
@@ -81,11 +89,16 @@ class RouteDrawer {
     if (!path || path.length === 0) return;
 
     const floors = new Set();
-    path.forEach((k) => floors.add(Number(k.split("_")[1])));
+    path.forEach((k) => {
+      const parts = k.split("_");
+      floors.add(Number(parts[parts.length - 1]));
+    });
     const arr = Array.from(floors).sort();
     if (arr.length > 1) {
-      const s = Number(path[0].split("_")[1]);
-      const e = Number(path[path.length - 1].split("_")[1]);
+      const sParts = path[0].split("_");
+      const eParts = path[path.length - 1].split("_");
+      const s = Number(sParts[sParts.length - 1]);
+      const e = Number(eParts[eParts.length - 1]);
       const sb = document.getElementById(`floor${s}`);
       const eb = document.getElementById(`floor${e}`);
       if (sb) sb.style.backgroundColor = "#ffcccc";
