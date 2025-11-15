@@ -1,32 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Main Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>УИКС - Навигация по университету</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-    <header>
-        <h1>Welcome to UIKS</h1>
-        <!-- Hamburger menu for mobile -->
-        <button id="hamburger" onclick="togglePanel()">☰</button>
-    </header>
-    <nav id="quick-access" style="display:none;">
-        <h2>Quick Access</h2>
-        <button data-room="dekanat">Деканат</button>
-        <button data-room="toilet">Туалет</button>
-        <button data-room="cafeteria">Столовая</button>
-        <button data-room="library">Библиотека</button>
-    </nav>
-    <main>
-        <h2>Route Search</h2>
-        <p>Existing route search functionality here...</p>
-    </main>
-    <script>
-        function togglePanel() {
-            var panel = document.getElementById('quick-access');
-            panel.style.display = (panel.style.display === 'none' ? 'block' : 'none');
-        }
-    </script>
+
+<div id="map"></div>
+
+<!-- Кнопка-гамбургер для мобильных -->
+<button id="togglePanel" class="hamburger" aria-label="Открыть меню">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+
+<!-- Главная панель навигации -->
+<div id="panel" class="panel-collapsed">
+
+  <!-- Панель быстрого доступа -->
+  <div id="quickAccess" class="quick-access">
+    <h3>Быстрый доступ</h3>
+    <div class="quick-buttons">
+      <button class="quick-btn" data-room="Деканат" title="Деканат">
+        <span class="icon">🏛️</span>
+        <span class="label">Деканат</span>
+      </button>
+      <button class="quick-btn" data-room="Туалет" title="Туалет">
+        <span class="icon">🚻</span>
+        <span class="label">Туалет</span>
+      </button>
+      <button class="quick-btn" data-room="Столовая" title="Столовая">
+        <span class="icon">🍽️</span>
+        <span class="label">Столовая</span>
+      </button>
+      <button class="quick-btn" data-room="Библиотека" title="Библиотека">
+        <span class="icon">📚</span>
+        <span class="label">Библиотека</span>
+      </button>
+      <button class="quick-btn" data-room="S1" title="Лестница 1">
+        <span class="icon">🪜</span>
+        <span class="label">Лестница</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Разделитель -->
+  <div class="divider"></div>
+
+  <!-- Поиск маршрута -->
+  <div class="route-search">
+    <h3>Построить маршрут</h3>
+    <div class="input-group">
+      <label for="fromRoom">Откуда:</label>
+      <input type="text" id="fromRoom" placeholder="Например: Б1-8" autocomplete="off" />
+    </div>
+    <div class="input-group">
+      <label for="toRoom">Куда:</label>
+      <input type="text" id="toRoom" placeholder="Например: Б2-11" autocomplete="off" />
+    </div>
+    <button id="findRoute" class="btn-primary">
+      <span class="icon">🔍</span>
+      <span>Найти путь</span>
+    </button>
+    <button id="clearRoute" class="btn-secondary">
+      <span class="icon">✖️</span>
+      <span>Очистить</span>
+    </button>
+  </div>
+
+  <!-- Переключатель этажей -->
+  <div id="floorSwitcher" class="floor-switcher">
+    <h3>Этаж</h3>
+    <div class="floor-buttons">
+      <button id="floor1" class="floor-btn active">1 этаж</button>
+      <button id="floor2" class="floor-btn">2 этаж</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/config.js"></script>
+<script src="js/map-renderer.js"></script>
+<script src="js/pathfinding.js"></script>
+<script src="js/route-drawer.js"></script>
+<script src="js/main.js"></script>
+
 </body>
 </html>
