@@ -2,38 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Университетская Интерактивная Картографическая Система</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
 </head>
 <body>
-
-<div id="map"></div>
-
-  <div id="panel">
-    <div>
-      <label>Из аудитории:</label>
-      <input id="fromRoom" value="" />
-    </div>
-    <div>
-      <label>В аудиторию:</label>
-      <input id="toRoom" value="" />
-    </div>
-    <button id="findRoute">Построить маршрут</button>
-    <div id="floorSwitcher">
-      <button id="floor1">1 этаж</button>
-      <button id="floor2">2 этаж</button>
-    </div>
-  </div>
-
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/map-renderer.js"></script>
-  <script src="js/pathfinding.js"></script>
-  <script src="js/route-drawer.js"></script>
-  <script src="js/main.js"></script>
-
-
+    <header>
+        <h1>Welcome to UIKS</h1>
+        <!-- Hamburger menu for mobile -->
+        <button id="hamburger" onclick="togglePanel()">☰</button>
+    </header>
+    <nav id="quick-access" style="display:none;">
+        <h2>Quick Access</h2>
+        <button data-room="dekanat">Деканат</button>
+        <button data-room="toilet">Туалет</button>
+        <button data-room="cafeteria">Столовая</button>
+        <button data-room="library">Библиотека</button>
+    </nav>
+    <main>
+        <h2>Route Search</h2>
+        <p>Existing route search functionality here...</p>
+    </main>
+    <script>
+        function togglePanel() {
+            var panel = document.getElementById('quick-access');
+            panel.style.display = (panel.style.display === 'none' ? 'block' : 'none');
+        }
+    </script>
 </body>
 </html>
