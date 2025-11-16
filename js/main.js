@@ -20,58 +20,151 @@ document.addEventListener('DOMContentLoaded', function() {
 
   console.log("Система навигации инициализирована");
   console.log("Коридорные узлы:", CONFIG.corridorNodes);
-  console.log("Рёбра графа:", pathFinder.edges);
 });
 
 function setupEventListeners() {
-  document.getElementById("findRoute").onclick = () => {
-    const from = document.getElementById("fromRoom").value.trim();
-    const to = document.getElementById("toRoom").value.trim();
+  // ===== ГАМБУРГЕР-МЕНЮ (мобильные) =====
+  const toggleBtn = document.getElementById("togglePanel");
+  const panel = document.getElementById("panel");
 
-    if (!from || !to) {
-      alert("Пожалуйста, введите начальную и конечную точки");
-      return;
-    }
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      panel.classList.toggle("panel-collapsed");
+      toggleBtn.classList.toggle("active");
+      console.log("Панель переключена:", !panel.classList.contains("panel-collapsed") ? "открыта" : "закрыта");
+    });
+  }
 
-    console.log(`Поиск маршрута от ${from} до ${to}`);
-    currentPath = pathFinder.findShortestPath(from, to);
+  // ===== КНОПКИ БЫСТРОГО ДОСТУПА =====
+  const quickButtons = document.querySelectorAll(".quick-btn");
+  quickButtons.forEach(btn => {
+    btn.addEventListener("click", function() {
+      const roomId = this.getAttribute("data-room");
+      const toInput = document.getElementById("toRoom");
 
-    if (currentPath.length > 0) {
-      routeDrawer.drawRoute(currentPath, currentFloor);
-      routeDrawer.highlightFloorButtons(currentPath);
-      console.log("Маршрут найден:", currentPath);
-    } else {
-      console.log("Маршрут не найден");
-      alert(`Маршрут от ${from} до ${to} не найден`);
-    }
-  };
+      // Заполняем поле "Куда"
+      toInput.value = roomId;
+      toInput.focus();
 
-  document.getElementById("floor1").onclick = () => {
-    currentFloor = 1;
-    mapRenderer.loadFloor(1);
-    if (currentPath.length > 0) {
-      routeDrawer.drawRoute(currentPath, currentFloor);
-    }
-  };
-
-  document.getElementById("floor2").onclick = () => {
-    currentFloor = 2;
-    mapRenderer.loadFloor(2);
-    if (currentPath.length > 0) {
-      routeDrawer.drawRoute(currentPath, currentFloor);
-    }
-  };
-
-  // Очистка маршрута по Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      currentPath = [];
-      if (routeDrawer.routeLine) {
-        routeDrawer.map.removeLayer(routeDrawer.routeLine);
-        routeDrawer.routeLine = null;
+      // Если есть начальная точка - сразу строим маршрут
+      const fromInput = document.getElementById("fromRoom");
+      if (fromInput.value.trim()) {
+        findAndDrawRoute();
       }
-      routeDrawer.highlightFloorButtons([]);
-      console.log("Маршрут очищен");
+
+      console.log(`Быстрый доступ: ${roomId}`);
+    });
+  });
+
+  // ===== ПОСТРОЕНИЕ МАРШРУТА =====
+  const findRouteBtn = document.getElementById("findRoute");
+  if (findRouteBtn) {
+    findRouteBtn.addEventListener("click", findAndDrawRoute);
+  }
+
+  // ===== ОЧИСТКА МАРШРУТА =====
+  const clearBtn = document.getElementById("clearRoute");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", clearRoute);
+  }
+
+  // ===== ПЕРЕКЛЮЧАТЕЛЬ ЭТАЖЕЙ =====
+  const floor1Btn = document.getElementById("floor1");
+  const floor2Btn = document.getElementById("floor2");
+
+  if (floor1Btn) {
+    floor1Btn.addEventListener("click", function() {
+      switchFloor(1);
+    });
+  }
+
+  if (floor2Btn) {
+    floor2Btn.addEventListener("click", function() {
+      switchFloor(2);
+    });
+  }
+
+  // ===== ОЧИСТКА МАРШРУТА ПО ESCAPE =====
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      clearRoute();
     }
   });
+}
+
+// Функция построения маршрута
+function findAndDrawRoute() {
+  const from = document.getElementById("fromRoom").value.trim();
+  const to = document.getElementById("toRoom").value.trim();
+
+  if (!from || !to) {
+    alert("Пожалуйста, введите начальную и конечную точки");
+    return;
+  }
+
+  console.log(`Поиск маршрута от ${from} до ${to}`);
+  currentPath = pathFinder.findShortestPath(from, to);
+
+  if (currentPath.length > 0) {
+    routeDrawer.drawRoute(currentPath, currentFloor);
+    routeDrawer.highlightFloorButtons(currentPath);
+    console.log("Маршрут найден:", currentPath);
+
+    // Автозакрытие панели на мобильных (опционально)
+    if (window.innerWidth <= 768) {
+      setTimeout(function() {
+        const panel = document.getElementById("panel");
+        const toggleBtn = document.getElementById("togglePanel");
+        if (panel && !panel.classList.contains("panel-collapsed")) {
+          panel.classList.add("panel-collapsed");
+          if (toggleBtn) toggleBtn.classList.remove("active");
+        }
+      }, 1500);
+    }
+  } else {
+    console.log("Маршрут не найден");
+    alert(`Маршрут от ${from} до ${to} не найден. Проверьте правильность названий аудиторий.`);
+  }
+}
+
+// Функция очистки маршрута
+function clearRoute() {
+  currentPath = [];
+
+  // Удаляем линию маршрута
+  if (routeDrawer.routeLine) {
+    routeDrawer.map.removeLayer(routeDrawer.routeLine);
+    routeDrawer.routeLine = null;
+  }
+
+  // Сбрасываем подсветку кнопок этажей
+  routeDrawer.highlightFloorButtons([]);
+
+  // Очищаем поля ввода
+  document.getElementById("fromRoom").value = "";
+  document.getElementById("toRoom").value = "";
+
+  console.log("Маршрут очищен");
+}
+
+// Функция переключения этажа
+function switchFloor(floor) {
+  currentFloor = floor;
+  mapRenderer.loadFloor(floor);
+
+  // Обновляем активное состояние кнопок
+  const floor1Btn = document.getElementById("floor1");
+  const floor2Btn = document.getElementById("floor2");
+
+  if (floor1Btn) floor1Btn.classList.toggle("active", floor === 1);
+  if (floor2Btn) floor2Btn.classList.toggle("active", floor === 2);
+
+  // Перерисовываем маршрут если он есть
+  if (currentPath.length > 0) {
+    routeDrawer.drawRoute(currentPath, currentFloor);
+  }
+
+  console.log(`Переключено на этаж ${floor}`);
 }
