@@ -73,6 +73,9 @@ function setupEventListeners() {
   // ===== ПЕРЕКЛЮЧАТЕЛЬ ЭТАЖЕЙ =====
   const floor1Btn = document.getElementById("floor1");
   const floor2Btn = document.getElementById("floor2");
+  const floor3Btn = document.getElementById("floor3");
+  const floor4Btn = document.getElementById("floor4");
+  const floor5Btn = document.getElementById("floor5");
 
   if (floor1Btn) {
     floor1Btn.addEventListener("click", function() {
@@ -83,6 +86,24 @@ function setupEventListeners() {
   if (floor2Btn) {
     floor2Btn.addEventListener("click", function() {
       switchFloor(2);
+    });
+  }
+
+  if (floor3Btn) {
+    floor3Btn.addEventListener("click", function() {
+      switchFloor(3);
+    });
+  }
+
+  if (floor4Btn) {
+    floor4Btn.addEventListener("click", function() {
+      switchFloor(4);
+    });
+  }
+
+  if (floor5Btn) {
+    floor5Btn.addEventListener("click", function() {
+      switchFloor(5);
     });
   }
 
@@ -157,9 +178,15 @@ function switchFloor(floor) {
   // Обновляем активное состояние кнопок
   const floor1Btn = document.getElementById("floor1");
   const floor2Btn = document.getElementById("floor2");
+  const floor3Btn = document.getElementById("floor3");
+  const floor4Btn = document.getElementById("floor4");
+  const floor5Btn = document.getElementById("floor5");
 
   if (floor1Btn) floor1Btn.classList.toggle("active", floor === 1);
   if (floor2Btn) floor2Btn.classList.toggle("active", floor === 2);
+  if (floor3Btn) floor3Btn.classList.toggle("active", floor === 3);
+  if (floor4Btn) floor4Btn.classList.toggle("active", floor === 4);
+  if (floor5Btn) floor5Btn.classList.toggle("active", floor === 5);
 
   // Перерисовываем маршрут если он есть
   if (currentPath.length > 0) {
