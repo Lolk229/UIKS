@@ -4,7 +4,10 @@ const CONFIG = {
     imageHeight: 1440,
     floorImages: {
       1: { url: "images/1Этаж.png", size: [1440, 2560] },
-      2: { url: "images/2Этаж.png", size: [1440, 2560] }
+      2: { url: "images/2Этаж.png", size: [1440, 2560] },
+      3: { url: "images/1floor_max_quality.png", size: [3824, 5120] },
+      4: { url: "images/1floor_pdf_to_svg.svg", size: [2867, 3840] },
+      5: { url: "images/1floor.svg", size: [1440, 2560] },
     },
     settings: {
       crs: L.CRS.Simple,
@@ -48,7 +51,44 @@ const CONFIG = {
       { id: "Б2-12", name: "Б2-12", coords: [340, 550], type: "room" },
       { id: "S1", name: "Лестница 1 (на 1 этаж)", coords: [340, 1075], type: "stair" },
       { id: "S2", name: "Лестница 2 (на 1 этаж)", coords: [310, 450],  type: "stair" }
-    ]
+    ],
+    4: [
+      { id: "Б1-1",  name: "Б1-1",  coords: [680, 1535], type: "room" },
+      { id: "Б1-2",  name: "Б1-2",  coords: [760, 1535], type: "room" },
+      { id: "Б1-3",  name: "Б1-3",  coords: [680, 1380],  type: "room" },
+      { id: "Б1-4",  name: "Б1-4",  coords: [760, 1485],  type: "room" },
+      { id: "Б1-5",  name: "Б1-5",  coords: [680, 1265],  type: "room" },
+      { id: "Б1-6",  name: "Б1-6",  coords: [760, 1380],  type: "room" },
+      { id: "Б1-7",  name: "Б1-7",  coords: [680, 1095],  type: "room" },
+      { id: "Б1-8",  name: "Б1-8",  coords: [760, 1335],  type: "room" },
+      { id: "Б1-9",  name: "Б1-9",  coords: [680, 980],  type: "room" },
+      { id: "Б1-10", name: "Б1-10", coords: [760, 1210],  type: "room" },
+      { id: "Б1-11", name: "Б1-11", coords: [680, 920],  type: "room" },
+      { id: "Б1-12", name: "Б1-12", coords: [760, 1150],  type: "room" },
+      { id: "Б1-13", name: "Б1-13", coords: [680, 735],  type: "room" },
+      { id: "Б1-14", name: "Б1-14", coords: [775, 755],  type: "room" },
+      { id: "Б1-15", name: "Б1-15", coords: [680, 735],  type: "room" },
+      { id: "Б1-16", name: "Б1-16", coords: [940, 760],  type: "room" },
+      { id: "Б1-17", name: "Б1-17", coords: [680, 735],  type: "room" },
+      { id: "Б1-18", name: "Б1-18", coords: [1120, 760],  type: "room" },
+      { id: "Б1-19", name: "Б1-19", coords: [800, 680],  type: "room" },
+      { id: "Б1-20", name: "Б1-20", coords: [800, 680],  type: "room" },
+      { id: "Б1-21", name: "Б1-21", coords: [940, 680],  type: "room" },
+      { id: "Б1-22", name: "Б1-22", coords: [800, 680],  type: "room" },
+      { id: "Б1-23", name: "Б1-23", coords: [1120, 680],  type: "room" },
+      { id: "Туалет", name: "Туалет", coords: [760, 1035], type: "toilet" },
+      { id: "S1", name: "Лестница 1", coords: [760, 1590], type: "stair" },
+      { id: "S2", name: "Лестница 2", coords: [730, 665],  type: "stair" },
+      { id: "S3", name: "Лестница 3", coords: [1405, 770],  type: "stair" },
+      { id: "S4", name: "Лестница 4", coords: [2160, 675],  type: "stair" },
+      { id: "S5", name: "Лестница 5", coords: [2075, 1915],  type: "stair" },
+      { id: "S6", name: "Лестница 6", coords: [2160, 3170],  type: "stair" },
+      { id: "S7", name: "Лестница 7", coords: [1400, 3060],  type: "stair" },
+      { id: "S8", name: "Лестница 8", coords: [825, 3175],  type: "stair" },
+      { id: "S9", name: "Лестница 9", coords: [775, 2520],  type: "stair" },
+
+    ],
+
   },
 
   // Коридорные точки (формат координат везде [y, x])
@@ -89,11 +129,11 @@ const CONFIG = {
       { id: "C1_turn1", type: "corridor", coords: [310, 480] },
 
       // Ось коридора (вертикаль) — одинаковый X=480, Y растёт с шагом ≈50
-      { id: "C1_v1", type: "corridor", coords: [360, 480] },
-      { id: "C1_v2", type: "corridor", coords: [410, 480] },
-      { id: "C1_v3", type: "corridor", coords: [460, 480] },
-      { id: "C1_v4", type: "corridor", coords: [510, 480] },
-      { id: "C1_v5", type: "corridor", coords: [560, 480] }
+      { id: "C1_v1", type: "corridor", coords: [360, 485] },
+      { id: "C1_v2", type: "corridor", coords: [410, 485] },
+      { id: "C1_v3", type: "corridor", coords: [460, 485] },
+      { id: "C1_v4", type: "corridor", coords: [510, 485] },
+      { id: "C1_v5", type: "corridor", coords: [560, 485] }
     ],
 
     2: [
@@ -138,8 +178,58 @@ const CONFIG = {
       { id: "C2_v3", type: "corridor", coords: [460, 480] },
       { id: "C2_v4", type: "corridor", coords: [510, 480] },
       { id: "C2_v5", type: "corridor", coords: [560, 480] }
+    ],
+    4:[
+//    Двери
+      { id: "Door_Б1-1",    type: "door", room: "Б1-1",    coords: [295, 1060] },
+      { id: "Door_Б1-2",    type: "door", room: "Б1-2",    coords: [325, 1040] },
+      { id: "Door_Б1-3",    type: "door", room: "Б1-3",    coords: [295, 996]  },
+      { id: "Door_Б1-4",    type: "door", room: "Б1-4",    coords: [325, 980]  },
+      { id: "Door_Б1-5",    type: "door", room: "Б1-5",    coords: [295, 960]  },
+      { id: "Door_Б1-6",    type: "door", room: "Б1-6",    coords: [325, 920]  },
+      { id: "Door_Б1-7",    type: "door", room: "Б1-7",    coords: [295, 725]  },
+      { id: "Door_Б1-8",    type: "door", room: "Б1-8",    coords: [325, 880]  },
+      { id: "Door_Б1-9",    type: "door", room: "Б1-9",    coords: [295, 670]  },
+      { id: "Door_Б1-10",   type: "door", room: "Б1-10",   coords: [325, 805]  },
+      { id: "Door_Б1-11",   type: "door", room: "Б1-11",   coords: [295, 590]  },
+      { id: "Door_Б1-12",   type: "door", room: "Б1-12",   coords: [325, 765]  },
+      { id: "Door_Б1-13",   type: "door", room: "Б1-1",   coords: [325, 765]  },
+      { id: "Door_Б1-14",   type: "door", room: "Б1-1",   coords: [325, 765]  },
+      { id: "Door_Б1-15",   type: "door", room: "Б1-1",   coords: [325, 765]  },
+      { id: "Door_Б1-16",   type: "door", room: "Б1-1",   coords: [325, 765]  },
+      { id: "Door_Б1-17",   type: "door", room: "Б1-1",   coords: [325, 765]  },
+      { id: "Door_Б1-18",   type: "door", room: "Б1-1",   coords: [325, 765]  },
+      { id: "Door_Б1-19",   type: "door", room: "Б1-1",   coords: [325, 765]  },
+      { id: "Door_Б1-20",   type: "door", room: "Б1-2",   coords: [325, 765]  },
+      { id: "Door_Б1-21",   type: "door", room: "Б1-2",   coords: [325, 765]  },
+      { id: "Door_Б1-22",   type: "door", room: "Б1-2",   coords: [325, 765]  },
+      { id: "Door_Б1-23",   type: "door", room: "Б1-2",   coords: [325, 765]  },
+
+
+//    Ось коридора
+      { id: "C1_h1",  type: "corridor", coords: [720, 1570] },
+      { id: "C1_h2",  type: "corridor", coords: [720, 1520] },
+      { id: "C1_h3",  type: "corridor", coords: [720, 1470] },
+      { id: "C1_h4",  type: "corridor", coords: [720, 1420] },
+      { id: "C1_h5",  type: "corridor", coords: [720, 1370] },
+      { id: "C1_h6",  type: "corridor", coords: [720, 1320] },
+      { id: "C1_h7",  type: "corridor", coords: [720, 1270] },
+      { id: "C1_h8",  type: "corridor", coords: [720, 1220] },
+      { id: "C1_h9",  type: "corridor", coords: [720, 1170] },
+      { id: "C1_h10", type: "corridor", coords: [720, 1120] },
+      { id: "C1_h11", type: "corridor", coords: [720, 1070] },
+      { id: "C1_h12", type: "corridor", coords: [720, 1020] },
+      { id: "C1_h13", type: "corridor", coords: [720, 970] },
+      { id: "C1_h14", type: "corridor", coords: [720, 920] },
+      { id: "C1_h15", type: "corridor", coords: [720, 870] },
+      { id: "C1_h16", type: "corridor", coords: [720, 820] },
+      { id: "C1_h17", type: "corridor", coords: [720, 770] },
+
+
+
     ]
   },
+
 
   // Параметры построения графа
   routing: {
