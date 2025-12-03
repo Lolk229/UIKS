@@ -4,10 +4,10 @@ const CONFIG = {
     imageHeight: 1440,
     floorImages: {
       1: { url: "images/1floor8kx8k.svg", size: [2867, 3840] },
-      2: { url: "images/2Этаж.png", size: [1440, 2560] },
-      3: { url: "images/1floor_max_quality.png", size: [3824, 5120] },
-      4: { url: "images/1floor_pdf_to_svg.svg", size: [2867, 3840] },
-      5: { url: "images/1floor.svg", size: [1440, 2560] },
+      2: { url: "images/Этаж1.svg", size: [2867, 3840] },
+      3: { url: "images/Этаж2.svg", size: [2867, 3840] },
+      4: { url: "images/Этаж3.svg", size: [2867, 3840] },
+      5: { url: "images/Этаж4.svg", size: [2867, 3840] },
     },
     settings: {
       crs: L.CRS.Simple,
@@ -478,3 +478,4 @@ const CONFIG = {
     corridorOffset: 30
   }
 };
+
