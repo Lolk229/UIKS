@@ -117,11 +117,11 @@ const CONFIG = {
       { id: "Б1-107",  name: "Б1-107",  coords: [580, 2325], type: "room" },
 
       // Туалеты
-      { id: "Туалет", name: "Туалет", coords: [675, 950], type: "toilet" },
-      { id: "Туалет",  name: "Туалет",  coords: [675, 3040], type: "toilet" },
-      { id: "Туалет",  name: "Туалет",  coords: [2150 ,880], type: "toilet" },
-      { id: "Туалет",  name: "Туалет",  coords: [2150, 2890], type: "toilet" },
-      { id: "Туалет",  name: "Туалет",  coords: [675, 2945], type: "toilet" },
+      { id: "Туалет1_1", name: "Туалет", coords: [675, 950], type: "toilet" },
+      { id: "Туалет2_1",  name: "Туалет",  coords: [2150, 880], type: "toilet" },
+      { id: "Туалет3_1",  name: "Туалет",  coords: [2150, 2890], type: "toilet" },
+      { id: "Туалет4_1",  name: "Туалет",  coords: [675, 3040], type: "toilet" },
+      { id: "Туалет5_1",  name: "Туалет",  coords: [675, 2945], type: "toilet" },
 
       // Лестницы
       { id: "S1_1", name: "Лестница 1", coords: [715, 1545], type: "stair" },
@@ -390,11 +390,11 @@ const CONFIG = {
       { id: "Door_S9_1",   type: "door", room: "S9",   coords: [655, 2535] },
 
       // Точки дверей Туалетов
-      { id:  "Door_Туалет_1", type: "door", room: "Туалет", coords: [655, 950] },
-      { id: "Door_Туалет_2", type: "door", room:  "Туалет", coords:  [2175, 880] },
-      { id: "Door_Туалет_3", type: "door", room:  "Туалет", coords:  [2175, 2890] },
-      { id: "Door_Туалет_4", type: "door", room:  "Туалет", coords:  [655, 3040] },
-      { id: "Door_Туалет_5", type: "door", room:  "Туалет", coords:  [655, 2945] },
+      { id:  "Door_Туалет_1", type: "door", room: "Туалет1_1", coords: [655, 950] },
+      { id: "Door_Туалет_2", type: "door", room:  "Туалет2_1", coords:  [2175, 880] },
+      { id: "Door_Туалет_3", type: "door", room:  "Туалет3_1", coords:  [2175, 2890] },
+      { id: "Door_Туалет_4", type: "door", room:  "Туалет4_1", coords:  [655, 3040] },
+      { id: "Door_Туалет_5", type: "door", room:  "Туалет5_1", coords:  [655, 2945] },
     ],
     // Этажи 2, 3, 4
     2: [],
