@@ -515,6 +515,43 @@ const CONFIG = {
     ],
 
     2: [
+          // Двери аудиторий (type: door)
+      { id: "Door_Б1-1",    type: "door", room: "Б1-1",    coords: [600, 1485] },
+      { id: "Door_Б1-2",    type: "door", room: "Б1-2",    coords: [660, 1485] },
+      { id: "Door_Б1-3",    type: "door", room: "Б1-3",    coords: [600, 1300] },
+      { id: "Door_Б1-4",    type: "door", room: "Б1-4",    coords: [660, 1425] },
+      { id: "Door_Б1-5",    type: "door", room: "Б1-5",    coords: [600, 1180] },
+      { id: "Door_Б1-6",    type: "door", room: "Б1-6",    coords: [660, 1305] },
+      { id: "Door_Б1-7",    type: "door", room: "Б1-7",    coords: [600, 995] },
+      { id: "Door_Б1-8",    type: "door", room: "Б1-8",    coords: [660, 1245] },
+      { id: "Door_Б1-9",    type: "door", room: "Б1-9",    coords: [600, 880] },
+      { id: "Door_Б1-10",   type: "door", room: "Б1-10",   coords: [660, 1125] },
+      { id: "Door_Б1-25",   type: "door", room: "Б1-25",   coords: [1375, 590] },
+      { id: "Door_Б1-26",   type: "door", room: "Б1-26",   coords: [1890, 645] },
+      { id: "Door_Б1-27",   type: "door", room: "Б1-27",   coords: [1505, 590] },
+      { id: "Door_Б1-28",   type: "door", room: "Б1-28",   coords: [2150, 645] },
+      { id: "Door_Б1-29",   type: "door", room: "Б1-29",   coords: [1675, 590] },
+      { id: "Door_Б1-30",   type: "door", room: "Б1-30",   coords: [2175, 950] },
+      { id: "Door_Б1-31",   type: "door", room: "Б1-31",   coords: [1795, 590] },
+      { id: "Door_Б1-32",   type: "door", room: "Б1-32",   coords: [2175, 1000] },
+      { id: "Door_Б1-33",   type: "door", room: "Б1-33",   coords: [1860, 590] },
+      { id: "Door_Б1-62",   type: "door", room: "Б1-62",   coords: [2090, 3190] },
+      { id: "Door_Б1-63",   type: "door", room: "Б1-63",   coords: [2230, 2475] },
+      { id: "Door_Б1-64",   type: "door", room: "Б1-64",   coords: [1980, 3190] },
+      { id: "Door_Б1-65",   type: "door", room: "Б1-65",   coords: [2230, 2600] },
+      { id: "Door_Б1-66",   type: "door", room: "Б1-66",   coords: [1790, 3190] },
+      { id: "Door_Б1-67",   type: "door", room: "Б1-67",   coords: [2230, 2720] },
+      { id: "Door_Б1-68",   type: "door", room: "Б1-68",   coords: [1680, 3190] },
+      { id: "Door_Б1-69",   type: "door", room: "Б1-69",   coords: [2230, 2840] },
+      { id: "Door_Б1-70",   type: "door", room: "Б1-70",   coords: [1560, 3190] },
+      { id: "Door_Б1-71",   type: "door", room: "Б1-71",   coords: [2230, 2955] },
+      { id: "Door_Б1-72",   type: "door", room: "Б1-72",   coords: [1125, 3190] },
+      { id: "Door_Б1-73",   type: "door", room: "Б1-73",   coords: [2230, 3025] },
+      { id: "Door_Б1-74",   type: "door", room: "Б1-74",   coords: [1050, 3190] },
+      { id: "Door_Б1-75",   type: "door", room: "Б1-75",   coords: [2125, 3245] },
+      { id: "Door_Б1-77",   type: "door", room: "Б1-75",   coords: [2035, 3245] },
+
+
       // Ось коридора
       { id: "C1_h1",  type: "corridor", coords: [630, 1550] },
       { id: "C1_h2",  type: "corridor", coords: [630, 1500] },
@@ -655,7 +692,6 @@ const CONFIG = {
       { id: "C1_h133", type: "corridor", coords: [630, 2370] },
       { id: "C1_h134", type:  "corridor", coords: [630, 2320] },
       { id: "C1_h135", type: "corridor", coords: [630, 2270] },
-
 
 
       // Угол: ровно в точке пересечения осей
