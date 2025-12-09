@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Floor Plan Preview Tool</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .controls {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .control-group label {
+      font-weight: 600;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .control-group input,
+    .control-group select {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      padding: 10px 0;
+    }
+
+    .filters label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .canvas-container {
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      background: white;
+      overflow: auto;
+      height: 700px;
+      position: relative;
+    }
+
+    .legend {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      min-width: 200px;
+    }
+
+    .legend h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+    }
+
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 0 3px rgba(0,0,0,0.3);
+    }
+
+    .stats {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #1976d2;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #555;
+      margin-top: 5px;
+    }
+
+    .point-details {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 1000;
+      min-width: 250px;
+      max-width: 400px;
+      display: none;
+    }
+
+    .point-details.visible {
+      display: block;
+    }
+
+    .point-details h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .point-details table {
+      width: 100%;
+      font-size: 14px;
+    }
+
+    .point-details td {
+      padding: 5px;
+    }
+
+    .point-details td:first-child {
+      font-weight: 600;
+      color: #555;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #1976d2;
+    }
+
+    .svg-point {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .svg-point:hover {
+      r: 8 !important;
+      stroke-width: 3 !important;
+    }
+
+    .zoom-controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .zoom-controls button {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Floor Plan Preview Tool</h1>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>SVG Map File</label>
+        <input type="file" id="svgInput" accept=".svg">
+      </div>
+      <div class="control-group">
+        <label>Generated Points (JSON)</label>
+        <input type="file" id="jsonInput" accept=".json">
+      </div>
+      <div class="control-group">
+        <label>Config.js File</label>
+        <input type="file" id="configInput" accept=".js">
+      </div>
+    </div>
+
+    <div class="filters">
+      <strong>Filters:</strong>
+      <label>
+        <input type="checkbox" id="showRooms" checked>
+        Show Rooms
+      </label>
+      <label>
+        <input type="checkbox" id="showCorridors" checked>
+        Show Corridors
+      </label>
+      <label>
+        <input type="checkbox" id="showDoors" checked>
+        Show Doors
+      </label>
+      <label>
+        <input type="checkbox" id="showExisting" checked>
+        Show Existing Points
+      </label>
+      <label>
+        <input type="checkbox" id="showNew" checked>
+        Show New Points
+      </label>
+    </div>
+
+    <div class="canvas-container" id="canvasContainer">
+      <div class="zoom-controls">
+        <button onclick="zoomIn()">+</button>
+        <button onclick="zoomOut()">−</button>
+        <button onclick="resetZoom()">⟲</button>
+      </div>
+
+      <div class="legend">
+        <h3>Legend</h3>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #4caf50;"></div>
+          <span>New Points</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #2196f3;"></div>
+          <span>Existing Points</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #f44336;"></div>
+          <span>Conflicts</span>
+        </div>
+      </div>
+
+      <div class="point-details" id="pointDetails">
+        <h3>Point Details</h3>
+        <table id="detailsTable"></table>
+      </div>
+
+      <div id="svgContent"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-value" id="totalRooms">0</div>
+        <div class="stat-label">Total Rooms</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="totalCorridors">0</div>
+        <div class="stat-label">Total Corridors</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="totalDoors">0</div>
+        <div class="stat-label">Total Doors</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="totalConflicts">0</div>
+        <div class="stat-label">Conflicts</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    const state = {
+      svgElement: null,
+      existingPoints: [],
+      newPoints: [],
+      scale: 1,
+      conflicts: []
+    };
+
+    // Load SVG
+    document.getElementById('svgInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const text = await file.text();
+      const svgContent = document.getElementById('svgContent');
+      svgContent.innerHTML = text;
+
+      state.svgElement = svgContent.querySelector('svg');
+      if (state.svgElement) {
+        state.svgElement.style.width = '100%';
+        state.svgElement.style.height = 'auto';
+      }
+
+      render();
+    });
+
+    // Load JSON
+    document.getElementById('jsonInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      state.newPoints = [
+        ...(data.rooms || []),
+        ...(data.corridors || []),
+        ...(data.doors || [])
+      ];
+
+      render();
+    });
+
+    // Load config.js
+    document.getElementById('configInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const text = await file.text();
+      
+      // Parse config.js (simple extraction)
+      const pointsMatch = text.match(/points:\s*{([^}]+)}/s);
+      if (pointsMatch) {
+        const floor = prompt('Enter floor number to load:', '1');
+        if (!floor) return;
+
+        const floorRegex = new RegExp(`${floor}:\\s*\\[([^\\]]+)\\]`, 's');
+        const floorMatch = text.match(floorRegex);
+        
+        if (floorMatch) {
+          try {
+            const pointsStr = '[' + floorMatch[1] + ']';
+            state.existingPoints = eval(pointsStr);
+          } catch (e) {
+            alert('Error parsing config.js: ' + e.message);
+          }
+        }
+      }
+
+      render();
+    });
+
+    function render() {
+      if (!state.svgElement) return;
+
+      // Remove existing point markers
+      state.svgElement.querySelectorAll('.svg-point').forEach(p => p.remove());
+
+      const showRooms = document.getElementById('showRooms').checked;
+      const showCorridors = document.getElementById('showCorridors').checked;
+      const showDoors = document.getElementById('showDoors').checked;
+      const showExisting = document.getElementById('showExisting').checked;
+      const showNew = document.getElementById('showNew').checked;
+
+      // Find conflicts
+      state.conflicts = findConflicts();
+
+      let roomCount = 0, corridorCount = 0, doorCount = 0;
+
+      // Render existing points
+      if (showExisting) {
+        state.existingPoints.forEach(point => {
+          if (!shouldShowPoint(point, showRooms, showCorridors, showDoors)) return;
+          
+          const isConflict = state.conflicts.some(c => c.existing.id === point.id);
+          drawPoint(point, '#2196f3', isConflict, false);
+          
+          if (point.type === 'room') roomCount++;
+          else if (point.type === 'corridor') corridorCount++;
+          else if (point.type === 'door') doorCount++;
+        });
+      }
+
+      // Render new points
+      if (showNew) {
+        state.newPoints.forEach(point => {
+          if (!shouldShowPoint(point, showRooms, showCorridors, showDoors)) return;
+          
+          const isConflict = state.conflicts.some(c => c.new.id === point.id);
+          drawPoint(point, '#4caf50', isConflict, true);
+          
+          if (point.type === 'room') roomCount++;
+          else if (point.type === 'corridor') corridorCount++;
+          else if (point.type === 'door') doorCount++;
+        });
+      }
+
+      // Update stats
+      document.getElementById('totalRooms').textContent = roomCount;
+      document.getElementById('totalCorridors').textContent = corridorCount;
+      document.getElementById('totalDoors').textContent = doorCount;
+      document.getElementById('totalConflicts').textContent = state.conflicts.length;
+    }
+
+    function shouldShowPoint(point, showRooms, showCorridors, showDoors) {
+      if (point.type === 'room' && !showRooms) return false;
+      if (point.type === 'corridor' && !showCorridors) return false;
+      if (point.type === 'door' && !showDoors) return false;
+      return true;
+    }
+
+    function drawPoint(point, color, isConflict, isNew) {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      const [y, x] = point.coords;
+      
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', isConflict ? 8 : 5);
+      circle.setAttribute('fill', isConflict ? '#f44336' : color);
+      circle.setAttribute('stroke', 'white');
+      circle.setAttribute('stroke-width', 2);
+      circle.setAttribute('class', 'svg-point');
+      circle.setAttribute('data-id', point.id);
+      circle.setAttribute('data-type', point.type);
+      circle.setAttribute('data-new', isNew);
+
+      circle.addEventListener('click', () => showPointDetails(point, isConflict, isNew));
+
+      state.svgElement.appendChild(circle);
+    }
+
+    function showPointDetails(point, isConflict, isNew) {
+      const details = document.getElementById('pointDetails');
+      const table = document.getElementById('detailsTable');
+      
+      table.innerHTML = `
+        <tr><td>ID:</td><td>${point.id}</td></tr>
+        <tr><td>Type:</td><td>${point.type}</td></tr>
+        <tr><td>Coords:</td><td>[${point.coords[0]}, ${point.coords[1]}]</td></tr>
+        <tr><td>Status:</td><td>${isNew ? 'New' : 'Existing'}</td></tr>
+        <tr><td>Conflict:</td><td>${isConflict ? '⚠️ Yes' : '✓ No'}</td></tr>
+      `;
+
+      details.classList.add('visible');
+    }
+
+    function findConflicts() {
+      const conflicts = [];
+      const tolerance = 10;
+
+      state.newPoints.forEach(newPoint => {
+        state.existingPoints.forEach(existingPoint => {
+          const [ny, nx] = newPoint.coords;
+          const [ey, ex] = existingPoint.coords;
+          const distance = Math.sqrt((nx - ex) ** 2 + (ny - ey) ** 2);
+
+          if (distance < tolerance) {
+            conflicts.push({
+              new: newPoint,
+              existing: existingPoint,
+              distance
+            });
+          }
+        });
+      });
+
+      return conflicts;
+    }
+
+    function zoomIn() {
+      state.scale *= 1.2;
+      applyZoom();
+    }
+
+    function zoomOut() {
+      state.scale *= 0.8;
+      applyZoom();
+    }
+
+    function resetZoom() {
+      state.scale = 1;
+      applyZoom();
+    }
+
+    function applyZoom() {
+      if (state.svgElement) {
+        state.svgElement.style.transform = `scale(${state.scale})`;
+        state.svgElement.style.transformOrigin = 'top left';
+      }
+    }
+
+    // Add filter change listeners
+    ['showRooms', 'showCorridors', 'showDoors', 'showExisting', 'showNew'].forEach(id => {
+      document.getElementById(id).addEventListener('change', render);
+    });
+  </script>
+</body>
+</html>
