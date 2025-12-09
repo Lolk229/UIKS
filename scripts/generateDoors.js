@@ -33,6 +33,10 @@ const configContent = fs.readFileSync(configPath, 'utf8');
 let configData;
 try {
   // Mock Leaflet object for parsing
+  // NOTE: Using eval() here is acceptable because:
+  // 1. We control the input (it's our own config file)
+  // 2. This is a build-time script, not runtime code
+  // 3. The config uses L.CRS.Simple which requires mocking
   const L = { CRS: { Simple: 'Simple' } };
   
   // Remove 'const CONFIG = ' and final semicolon, then parse
@@ -40,7 +44,7 @@ try {
   if (!configMatch) {
     throw new Error('Could not find CONFIG object in config.js');
   }
-  // Use eval in a safe way (we control the input)
+  // Use eval in a controlled context (we control the input)
   configData = eval('(' + configMatch[1] + ')');
 } catch (error) {
   console.error('Error parsing config.js:', error.message);
@@ -315,7 +319,8 @@ addedDoors.forEach(({ door }) => {
   
   corridorPoints.forEach(cp => {
     const [cpY, cpX] = cp.coords;
-    const dist = Math.sqrt(Math.pow(doorY - cpY, 2) + Math.pow(doorX - cpX, 2));
+    // Use ** operator for more efficient squaring
+    const dist = Math.sqrt((doorY - cpY) ** 2 + (doorX - cpX) ** 2);
     minDist = Math.min(minDist, dist);
   });
   
@@ -359,10 +364,12 @@ if (isApply && addedDoors.length > 0) {
   const floor2Section = configContent.substring(floor2Start, floor2End);
   
   // Find the last door entry in floor 2
+  // Pattern matches: { id: "Door_...", ... },\n\n
   const lastDoorMatch = floor2Section.match(/(\{ id: "Door_[^}]+\},)\s*\n\s*\n/);
   
   if (!lastDoorMatch) {
     console.error('  ✗ Could not find door section in config.js');
+    console.log('  Expected format: { id: "Door_...", type: "door", ... },');
     console.log('  Please add doors manually or check the config file structure.');
     process.exit(1);
   }
