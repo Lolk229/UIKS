@@ -370,7 +370,7 @@
 
       const text = await file.text();
       
-      // Parse config.js (simple extraction)
+      // Parse config.js by converting to proper JSON
       const pointsMatch = text.match(/points:\s*{([^}]+)}/s);
       if (pointsMatch) {
         const floor = prompt('Enter floor number to load:', '1');
@@ -381,10 +381,13 @@
         
         if (floorMatch) {
           try {
-            const pointsStr = '[' + floorMatch[1] + ']';
-            state.existingPoints = eval(pointsStr);
+            // Convert JS object notation to JSON by wrapping keys in quotes
+            let pointsStr = '[' + floorMatch[1] + ']';
+            // Replace unquoted keys with quoted keys
+            pointsStr = pointsStr.replace(/(\w+):/g, '"$1":');
+            state.existingPoints = JSON.parse(pointsStr);
           } catch (e) {
-            alert('Error parsing config.js: ' + e.message);
+            alert('Error parsing config.js: ' + e.message + '\n\nTip: Make sure the config.js format is valid');
           }
         }
       }

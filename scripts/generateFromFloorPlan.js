@@ -72,7 +72,21 @@ async function extractPdfToImage() {
   }
 
   console.log('Loading PDF libraries...');
-  const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+  
+  // Try to load pdfjs-dist with proper compatibility
+  let pdfjsLib;
+  try {
+    // Try legacy build first (compatible with older versions)
+    pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+  } catch (e) {
+    try {
+      // Fallback to standard build for newer versions
+      pdfjsLib = require('pdfjs-dist');
+    } catch (e2) {
+      throw new Error('Failed to load pdfjs-dist. Please ensure it is installed correctly.');
+    }
+  }
+  
   const { createCanvas } = require('canvas');
   const Jimp = require('jimp');
 
@@ -213,20 +227,23 @@ async function performOcr() {
 
 /**
  * Calculate affine transformation matrix
+ * Uses least squares to find best-fit transformation from 4+ calibration points
  */
 function calculateTransformMatrix(pdfPoints, svgPoints) {
-  // Using least squares method to solve for affine transformation
-  // x' = a*x + b*y + c
-  // y' = d*x + e*y + f
+  // pdfPoints = [{x, y}, {x, y}, {x, y}, {x, y}]
+  // svgPoints = [{x, y}, {x, y}, {x, y}, {x, y}]
   
   const n = pdfPoints.length;
   if (n < 3) {
     throw new Error('At least 3 points required for transformation');
   }
 
-  // Build matrices for least squares
-  let sumX = 0, sumY = 0, sumXX = 0, sumYY = 0, sumXY = 0;
-  let sumX2 = 0, sumY2 = 0, sumXX2 = 0, sumYX2 = 0, sumYY2 = 0;
+  // For affine transformation: x' = a*x + b*y + c, y' = d*x + e*y + f
+  // We solve two separate least squares problems (one for x, one for y)
+  
+  // Build system for x transformation: A * [a, b, c]^T = X
+  let sumPx = 0, sumPy = 0, sumPxPx = 0, sumPyPy = 0, sumPxPy = 0;
+  let sumSx = 0, sumSy = 0, sumPxSx = 0, sumPySx = 0, sumPxSy = 0, sumPySy = 0;
 
   for (let i = 0; i < n; i++) {
     const px = pdfPoints[i].x;
@@ -234,38 +251,53 @@ function calculateTransformMatrix(pdfPoints, svgPoints) {
     const sx = svgPoints[i].x;
     const sy = svgPoints[i].y;
 
-    sumX += px;
-    sumY += py;
-    sumXX += px * px;
-    sumYY += py * py;
-    sumXY += px * py;
-    sumX2 += sx;
-    sumY2 += sy;
-    sumXX2 += px * sx;
-    sumYX2 += py * sx;
-    sumYY2 += py * sy;
+    sumPx += px;
+    sumPy += py;
+    sumPxPx += px * px;
+    sumPyPy += py * py;
+    sumPxPy += px * py;
+    sumSx += sx;
+    sumSy += sy;
+    sumPxSx += px * sx;
+    sumPySx += py * sx;
+    sumPxSy += px * sy;
+    sumPySy += py * sy;
   }
 
-  // Solve for a, b, c (for x transformation)
-  const det = n * (sumXX * sumYY - sumXY * sumXY) - sumX * (sumX * sumYY - sumY * sumXY) + sumY * (sumX * sumXY - sumY * sumXX);
-  
-  const a = (n * sumXX2 * sumYY + sumX * sumYX2 * sumY + sumY * sumX2 * sumXY - sumY * sumXX2 * sumY - sumX * sumYX2 * sumX - n * sumX2 * sumXY) / det;
-  const b = (sumXX * sumYX2 * n + sumX * sumY2 * sumY + sumXY * sumX2 * sumY - sumXY * sumYX2 * n - sumX * sumY2 * sumX - sumXX * sumX2 * sumY) / det;
-  const c = (sumX2 * sumXX * sumYY + sumXX2 * sumY * sumXY + sumYX2 * sumX * sumY - sumYX2 * sumXX * sumY - sumXX2 * sumY * sumY - sumX2 * sumX * sumXY) / (det * n);
+  // Solve for x coefficients (a, b, c) using Cramer's rule
+  const det = n * sumPxPx * sumPyPy + sumPx * sumPy * sumPxPy + sumPy * sumPxPy * sumPx
+            - sumPy * sumPxPx * sumPy - sumPx * sumPx * sumPyPy - n * sumPxPy * sumPxPy;
 
-  // Simplified calculation for demo purposes
-  // In production, use a proper matrix library
-  const scaleX = (svgPoints[1].x - svgPoints[0].x) / (pdfPoints[1].x - pdfPoints[0].x);
-  const scaleY = (svgPoints[2].y - svgPoints[0].y) / (pdfPoints[2].y - pdfPoints[0].y);
+  if (Math.abs(det) < 1e-10) {
+    // Fallback to simple scale/translate if points are collinear
+    console.warn('Warning: Calibration points may be collinear, using simplified transformation');
+    const scaleX = (svgPoints[1].x - svgPoints[0].x) / (pdfPoints[1].x - pdfPoints[0].x);
+    const scaleY = (svgPoints[2].y - svgPoints[0].y) / (pdfPoints[2].y - pdfPoints[0].y);
+    
+    return {
+      a: scaleX || 1,
+      b: 0,
+      c: svgPoints[0].x - scaleX * pdfPoints[0].x,
+      d: 0,
+      e: scaleY || 1,
+      f: svgPoints[0].y - scaleY * pdfPoints[0].y
+    };
+  }
+
+  const a = (sumPxSx * sumPyPy * n + sumPySx * sumPy * sumPxPy + sumSx * sumPxPy * sumPy
+           - sumSx * sumPyPy * sumPy - sumPySx * sumPx * sumPyPy - sumPxSx * n * sumPxPy) / det;
+  const b = (sumPxPx * sumPySx * n + sumPx * sumSx * sumPxPy + sumPxSx * sumPy * sumPx
+           - sumPxSx * sumPySx * n - sumPx * sumPx * sumPySx - sumPxPx * sumSx * sumPy) / det;
+  const c = (sumSx - a * sumPx - b * sumPy) / n;
+
+  // Solve for y coefficients (d, e, f)
+  const d = (sumPxSy * sumPyPy * n + sumPySy * sumPy * sumPxPy + sumSy * sumPxPy * sumPy
+           - sumSy * sumPyPy * sumPy - sumPySy * sumPx * sumPyPy - sumPxSy * n * sumPxPy) / det;
+  const e = (sumPxPx * sumPySy * n + sumPx * sumSy * sumPxPy + sumPxSy * sumPy * sumPx
+           - sumPxSy * sumPySy * n - sumPx * sumPx * sumPySy - sumPxPx * sumSy * sumPy) / det;
+  const f = (sumSy - d * sumPx - e * sumPy) / n;
   
-  return {
-    a: scaleX,
-    b: 0,
-    c: svgPoints[0].x - scaleX * pdfPoints[0].x,
-    d: 0,
-    e: scaleY,
-    f: svgPoints[0].y - scaleY * pdfPoints[0].y
-  };
+  return { a, b, c, d, e, f };
 }
 
 /**
