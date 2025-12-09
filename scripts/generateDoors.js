@@ -292,10 +292,18 @@ if (skippedRooms.length > 0) {
 
 // Check for duplicates
 const doorCoordStrings = addedDoors.map(d => d.door.coords.join(','));
-const duplicateCoords = doorCoordStrings.filter((coord, idx) => doorCoordStrings.indexOf(coord) !== idx);
-if (duplicateCoords.length > 0) {
-  console.log('\n⚠ WARNING: Duplicate door coordinates found:');
-  duplicateCoords.forEach(coord => console.log(`  - ${coord}`));
+const uniqueCoordStrings = [...new Set(doorCoordStrings)];
+if (doorCoordStrings.length > uniqueCoordStrings.length) {
+  console.log('\n⚠ Note: Some doors share the same coordinates (rooms at same location):');
+  const coordCounts = {};
+  doorCoordStrings.forEach(coord => {
+    coordCounts[coord] = (coordCounts[coord] || 0) + 1;
+  });
+  Object.entries(coordCounts).filter(([coord, count]) => count > 1).forEach(([coord, count]) => {
+    const doorsAtCoord = addedDoors.filter(d => d.door.coords.join(',') === coord);
+    const roomIds = doorsAtCoord.map(d => d.door.room).join(', ');
+    console.log(`  - [${coord}]: ${count} doors for rooms ${roomIds}`);
+  });
 }
 
 // Validate distances to corridor nodes
@@ -332,33 +340,40 @@ if (isApply && addedDoors.length > 0) {
   
   // Generate the door entries to insert
   const doorEntries = addedDoors.map(({ door }) => {
-    const coordStr = `[${door.coords[0]}, ${door.coords[1]}]`;
-    return `      { id: "${door.id}",   type: "door", room: "${door.room}",   coords: ${coordStr} },`;
+    // Format coordinates with proper spacing
+    const yStr = String(door.coords[0]);
+    const xStr = String(door.coords[1]);
+    const coordStr = `[${yStr}, ${xStr}]`;
+    
+    // Determine spacing for alignment (same pattern as existing doors)
+    const idPadding = ' '.repeat(Math.max(0, 17 - door.id.length));
+    const roomPadding = ' '.repeat(Math.max(0, 10 - door.room.length));
+    
+    return `      { id: "${door.id}",${idPadding}type: "door", room: "${door.room}",${roomPadding}coords: ${coordStr} },`;
   }).join('\n');
   
   // Find the position to insert the doors
-  // We'll insert them after the existing doors in floor 2's corridorNodes section
-  // Look for the last door entry in floor 2
-  const floor2Match = configContent.match(/2: \[\s*\/\/ Двери аудиторий[\s\S]*?(\/\/ Ось коридора)/);
+  // Look for the last door entry before "// Ось коридора" in floor 2's corridorNodes section
+  const floor2Start = configContent.indexOf('  2: [', configContent.indexOf('corridorNodes:'));
+  const floor2End = configContent.indexOf('  ]', floor2Start);
+  const floor2Section = configContent.substring(floor2Start, floor2End);
   
-  if (!floor2Match) {
-    console.error('  ✗ Could not find insertion point in config.js');
-    process.exit(1);
-  }
+  // Find the last door entry in floor 2
+  const lastDoorMatch = floor2Section.match(/(\{ id: "Door_[^}]+\},)\s*\n\s*\n/);
   
-  // Find the last door entry before "// Ось коридора"
-  const doorSectionMatch = configContent.match(/2: \[\s*\/\/ Двери аудиторий[\s\S]*?(\{ id: "Door_[^}]+\},)\s*\n\s*\n\s*\n\s*(\/\/ Ось коридора)/);
-  
-  if (!doorSectionMatch) {
+  if (!lastDoorMatch) {
     console.error('  ✗ Could not find door section in config.js');
+    console.log('  Please add doors manually or check the config file structure.');
     process.exit(1);
   }
   
-  // Insert new doors after the last existing door
-  const newContent = configContent.replace(
-    /(\{ id: "Door_Б1-77",   type: "door", room: "Б1-75",   coords: \[2035, 3245\] \},)\s*\n\s*\n\s*\n\s*(\/\/ Ось коридора)/,
-    `$1\n${doorEntries}\n\n\n      $2`
-  );
+  // Find the position in the original content
+  const insertPos = configContent.indexOf(lastDoorMatch[0], floor2Start) + lastDoorMatch[0].length;
+  
+  // Insert new doors
+  const beforeInsert = configContent.substring(0, insertPos);
+  const afterInsert = configContent.substring(insertPos);
+  const newContent = beforeInsert + doorEntries + '\n\n' + afterInsert;
   
   // Write the updated content
   fs.writeFileSync(configPath, newContent, 'utf8');
