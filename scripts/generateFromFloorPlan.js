@@ -230,20 +230,20 @@ async function performOcr() {
  * Uses least squares to find best-fit transformation from 4+ calibration points
  */
 function calculateTransformMatrix(pdfPoints, svgPoints) {
-  // pdfPoints = [{x, y}, {x, y}, {x, y}, {x, y}]
-  // svgPoints = [{x, y}, {x, y}, {x, y}, {x, y}]
-  
   const n = pdfPoints.length;
   if (n < 3) {
     throw new Error('At least 3 points required for transformation');
   }
 
   // For affine transformation: x' = a*x + b*y + c, y' = d*x + e*y + f
-  // We solve two separate least squares problems (one for x, one for y)
+  // We solve using normal equations: A^T * A * params = A^T * b
   
-  // Build system for x transformation: A * [a, b, c]^T = X
-  let sumPx = 0, sumPy = 0, sumPxPx = 0, sumPyPy = 0, sumPxPy = 0;
-  let sumSx = 0, sumSy = 0, sumPxSx = 0, sumPySx = 0, sumPxSy = 0, sumPySy = 0;
+  // Build the system of equations
+  let A11 = 0, A12 = 0, A13 = 0;
+  let A21 = 0, A22 = 0, A23 = 0;
+  let A31 = 0, A32 = 0, A33 = 0;
+  let bx1 = 0, bx2 = 0, bx3 = 0;
+  let by1 = 0, by2 = 0, by3 = 0;
 
   for (let i = 0; i < n; i++) {
     const px = pdfPoints[i].x;
@@ -251,25 +251,34 @@ function calculateTransformMatrix(pdfPoints, svgPoints) {
     const sx = svgPoints[i].x;
     const sy = svgPoints[i].y;
 
-    sumPx += px;
-    sumPy += py;
-    sumPxPx += px * px;
-    sumPyPy += py * py;
-    sumPxPy += px * py;
-    sumSx += sx;
-    sumSy += sy;
-    sumPxSx += px * sx;
-    sumPySx += py * sx;
-    sumPxSy += px * sy;
-    sumPySy += py * sy;
+    A11 += px * px;
+    A12 += px * py;
+    A13 += px;
+    
+    A21 += py * px;
+    A22 += py * py;
+    A23 += py;
+    
+    A31 += px;
+    A32 += py;
+    A33 += 1;
+
+    bx1 += px * sx;
+    bx2 += py * sx;
+    bx3 += sx;
+
+    by1 += px * sy;
+    by2 += py * sy;
+    by3 += sy;
   }
 
-  // Solve for x coefficients (a, b, c) using Cramer's rule
-  const det = n * sumPxPx * sumPyPy + sumPx * sumPy * sumPxPy + sumPy * sumPxPy * sumPx
-            - sumPy * sumPxPx * sumPy - sumPx * sumPx * sumPyPy - n * sumPxPy * sumPxPy;
+  // Solve 3x3 system using Cramer's rule for x coefficients (a, b, c)
+  const det = A11 * (A22 * A33 - A23 * A32) 
+            - A12 * (A21 * A33 - A23 * A31) 
+            + A13 * (A21 * A32 - A22 * A31);
 
   if (Math.abs(det) < 1e-10) {
-    // Fallback to simple scale/translate if points are collinear
+    // Fallback to simple scale/translate
     console.warn('Warning: Calibration points may be collinear, using simplified transformation');
     const scaleX = (svgPoints[1].x - svgPoints[0].x) / (pdfPoints[1].x - pdfPoints[0].x);
     const scaleY = (svgPoints[2].y - svgPoints[0].y) / (pdfPoints[2].y - pdfPoints[0].y);
@@ -284,20 +293,36 @@ function calculateTransformMatrix(pdfPoints, svgPoints) {
     };
   }
 
-  const a = (sumPxSx * sumPyPy * n + sumPySx * sumPy * sumPxPy + sumSx * sumPxPy * sumPy
-           - sumSx * sumPyPy * sumPy - sumPySx * sumPx * sumPyPy - sumPxSx * n * sumPxPy) / det;
-  const b = (sumPxPx * sumPySx * n + sumPx * sumSx * sumPxPy + sumPxSx * sumPy * sumPx
-           - sumPxSx * sumPySx * n - sumPx * sumPx * sumPySx - sumPxPx * sumSx * sumPy) / det;
-  const c = (sumSx - a * sumPx - b * sumPy) / n;
+  // Solve for a, b, c (x transformation)
+  const det_a = bx1 * (A22 * A33 - A23 * A32) 
+              - A12 * (bx2 * A33 - A23 * bx3) 
+              + A13 * (bx2 * A32 - A22 * bx3);
+  const det_b = A11 * (bx2 * A33 - A23 * bx3) 
+              - bx1 * (A21 * A33 - A23 * A31) 
+              + A13 * (A21 * bx3 - bx2 * A31);
+  const det_c = A11 * (A22 * bx3 - bx2 * A32) 
+              - A12 * (A21 * bx3 - bx2 * A31) 
+              + bx1 * (A21 * A32 - A22 * A31);
 
-  // Solve for y coefficients (d, e, f)
-  const d = (sumPxSy * sumPyPy * n + sumPySy * sumPy * sumPxPy + sumSy * sumPxPy * sumPy
-           - sumSy * sumPyPy * sumPy - sumPySy * sumPx * sumPyPy - sumPxSy * n * sumPxPy) / det;
-  const e = (sumPxPx * sumPySy * n + sumPx * sumSy * sumPxPy + sumPxSy * sumPy * sumPx
-           - sumPxSy * sumPySy * n - sumPx * sumPx * sumPySy - sumPxPx * sumSy * sumPy) / det;
-  const f = (sumSy - d * sumPx - e * sumPy) / n;
-  
-  return { a, b, c, d, e, f };
+  // Solve for d, e, f (y transformation)
+  const det_d = by1 * (A22 * A33 - A23 * A32) 
+              - A12 * (by2 * A33 - A23 * by3) 
+              + A13 * (by2 * A32 - A22 * by3);
+  const det_e = A11 * (by2 * A33 - A23 * by3) 
+              - by1 * (A21 * A33 - A23 * A31) 
+              + A13 * (A21 * by3 - by2 * A31);
+  const det_f = A11 * (A22 * by3 - by2 * A32) 
+              - A12 * (A21 * by3 - by2 * A31) 
+              + by1 * (A21 * A32 - A22 * A31);
+
+  return {
+    a: det_a / det,
+    b: det_b / det,
+    c: det_c / det,
+    d: det_d / det,
+    e: det_e / det,
+    f: det_f / det
+  };
 }
 
 /**
