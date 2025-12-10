@@ -740,16 +740,19 @@ const CONFIG = {
       { id:  "C2_h64", type:  "corridor", coords: [2200, 1450] },
       { id:  "C2_h65", type: "corridor", coords: [2200, 1510] },
       { id:  "C2_h66", type: "corridor", coords: [2200, 1570] },
+      { id:  "C2_h66_2", type: "corridor", coords: [2230, 1600] },
       { id:  "C2_h67", type: "corridor", coords: [2200, 1630] },
       { id:  "C2_h68", type: "corridor", coords:  [2200, 1690] },
       { id:  "C2_h69", type:  "corridor", coords: [2200, 1750] },
       { id:  "C2_h70", type: "corridor", coords: [2200, 1810] },
       { id:   "C2_h71", type: "corridor", coords: [2200, 1870] },
       { id:  "C2_h72", type: "corridor", coords: [2200, 1930] },
+      { id:  "C2_h72_2", type: "corridor", coords: [2230, 1930] },
       { id:  "C2_h73", type: "corridor", coords: [2200, 1990] },
       { id:  "C2_h74", type: "corridor", coords: [2200, 2050] },
       { id:  "C2_h75", type: "corridor", coords: [2200, 2110] },
       { id:  "C2_h76", type: "corridor", coords:  [2200, 2170] },
+      { id:  "C2_h76_2", type: "corridor", coords:  [2230, 2170] },
       { id:  "C2_h77", type:  "corridor", coords: [2200, 2230] },
       { id:  "C2_h78", type: "corridor", coords: [2200, 2290] },
       { id:   "C2_h79", type: "corridor", coords: [2200, 2350] },
@@ -849,10 +852,10 @@ const CONFIG = {
   // Параметры построения графа
   routing: {
     maxCorridorDistance: 70,
-    maxRoomToCorridorDistance: 45,
+    maxRoomToCorridorDistance: 50,
     axisTolerance: 25,
     doorAlignTolerance: 35,
     stairConnectionDistance: 50,
-    corridorOffset: 30
+    corridorOffset: 50
   }
 };
