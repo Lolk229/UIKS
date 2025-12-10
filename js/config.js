@@ -211,7 +211,7 @@ const CONFIG = {
       { id: "Б2-78", name: "Б2-78", coords: [2150, 2475], type: "room" },
       { id: "Б2-79", name: "Б2-79", coords: [2260, 2290], type: "room" },
       { id: "Б2-80", name: "Б2-80", coords: [2150, 2530], type: "room" },
-      { id: "Столовая", name: "Столовая", coords: [2150, 2625], type: "room" },, // Прикинь, реально столовая
+      { id: "Столовая", name: "Столовая", coords: [2150, 2625], type: "room" }, // Прикинь, реально столовая
       { id: "Б2-81", name: "Б2-81", coords: [2260, 2350], type: "room" },
       { id: "Б2-82", name: "Б2-82", coords: [2150, 2715], type: "room" },
       { id: "Б2-83", name: "Б2-83", coords: [2260, 2430], type: "room" },
