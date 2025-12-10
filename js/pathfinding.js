@@ -1,255 +1,169 @@
-// Навигатор по зданию:  граф "комната → дверь → ось коридора → дверь → комната"
-// Координаты ВСЕХ точек в CONFIG заданы в формате [y, x] (Leaflet:  lat, lng)
-
-class PathFinder {
-  constructor(points, corridorNodes) {
-    this.points = points;
-    this.corridorNodes = corridorNodes;
-    this.graph = this.buildGraph();
+// Отрисовка маршрута
+class RouteDrawer {
+  constructor(map) {
+    this. map = map;
+    this.routeLine = null;
   }
 
-  static dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
-
-  static addEdge(graph, aId, bId, distance) {
-    if (!graph.has(aId) || !graph.has(bId)) return;
-    const A = graph.get(aId);
-    const B = graph.get(bId);
-    if (!A.neighbors.some(function(n) { return n.id === bId; })) A.neighbors.push({ id: bId, distance:  distance });
-    if (!B.neighbors.some(function(n) { return n.id === aId; })) B.neighbors.push({ id: aId, distance:  distance });
-  }
-
-  buildGraph() {
-    const graph = new Map();
-    const self = this;
-
-    const routing = CONFIG.routing || {};
-    const maxCorridorDistance = routing.maxCorridorDistance || 120;
-    const maxRoomToCorridorDistance = routing.maxRoomToCorridorDistance || 80;
-    const axisTolerance = routing.axisTolerance || 18;
-    const doorAlignTolerance = routing.doorAlignTolerance || 16;
-
-    // 1) Регистрируем комнаты/лестницы/туалеты
-    Object.entries(this.points).forEach(function(entry) {
-      const floor = entry[0];
-      const arr = entry[1];
-      const f = Number(floor);
-      arr.forEach(function(p) {
-        const id = p.id + "_" + f;
-        graph.set(id, { id: p.id, floor: f, type:  p.type, coords: p.coords, neighbors: [] });
-      });
-    });
-
-    // 2) Регистрируем corridorNodes (door + corridor)
-    Object.entries(this.corridorNodes).forEach(function(entry) {
-      const floor = entry[0];
-      const arr = entry[1];
-      const f = Number(floor);
-      arr.forEach(function(n) {
-        const id = n.id + "_" + f;
-        graph.set(id, {
-          id: n.id,
-          floor: f,
-          type: n.type || 'corridor',
-          room: n.room || null,
-          coords:  n.coords,
-          neighbors: []
-        });
-      });
-    });
-
-    // 3) Комната → (все её) двери
-    Object.entries(this.points).forEach(function(entry) {
-      const floor = entry[0];
-      const arr = entry[1];
-      const f = Number(floor);
-      const doors = (self.corridorNodes[f] || []).filter(function(n) { return n.type === 'door'; });
-      arr.forEach(function(room) {
-        doors.filter(function(d) { return d.room === room.id; }).forEach(function(door) {
-          PathFinder.addEdge(
-            graph,
-            room.id + "_" + f,
-            door.id + "_" + f,
-            PathFinder.dist(room.coords, door.coords)
-          );
-        });
-      });
-    });
-
-    // 4) Дверь → коридор
-    Object.entries(this.corridorNodes).forEach(function(entry) {
-      const floor = entry[0];
-      const arr = entry[1];
-      const f = Number(floor);
-      const doors = arr.filter(function(n) { return n.type === 'door'; });
-      const corridors = arr.filter(function(n) { return n.type === 'corridor'; });
-
-      doors.forEach(function(d) {
-        const dId = d.id + "_" + f;
-        const aligned = corridors
-          .map(function(c) {
-            const dX = Math.abs(d.coords[1] - c.coords[1]);
-            const dY = Math.abs(d.coords[0] - c.coords[0]);
-            return {
-              c: c,
-              d: PathFinder.dist(d.coords, c.coords),
-              aligned: (dX <= doorAlignTolerance) || (dY <= doorAlignTolerance)
-            };
-          })
-          .filter(function(o) { return o.d <= maxRoomToCorridorDistance && o.aligned; })
-          .sort(function(a, b) { return a.d - b.d; })
-          .slice(0, 2);
-
-        aligned.forEach(function(n) {
-          PathFinder.addEdge(graph, dId, n.c.id + "_" + f, n.d);
-        });
-      });
-    });
-
-    // 5) Corridor → corridor
-    Object.entries(this.corridorNodes).forEach(function(entry) {
-      const floor = entry[0];
-      const arr = entry[1];
-      const f = Number(floor);
-      const corridors = arr.filter(function(n) { return n.type === 'corridor'; });
-
-      const groupsH = [];
-      corridors.forEach(function(c) {
-        let g = groupsH.find(function(g) { return Math.abs(g.y - c.coords[0]) <= axisTolerance; });
-        if (!g) { g = { y:  c.coords[0], items: [] }; groupsH.push(g); }
-        g.items.push(c);
-      });
-      groupsH.forEach(function(g) {
-        g.items.sort(function(a, b) { return a.coords[1] - b.coords[1]; });
-        for (let i = 0; i < g.items.length - 1; i++) {
-          const A = g.items[i], B = g.items[i + 1];
-          const d = PathFinder.dist(A.coords, B.coords);
-          if (d <= maxCorridorDistance) {
-            PathFinder.addEdge(graph, A.id + "_" + f, B.id + "_" + f, d);
-          }
-        }
-      });
-
-      const groupsV = [];
-      corridors.forEach(function(c) {
-        let g = groupsV.find(function(g) { return Math.abs(g.x - c.coords[1]) <= axisTolerance; });
-        if (!g) { g = { x: c.coords[1], items: [] }; groupsV.push(g); }
-        g.items.push(c);
-      });
-      groupsV.forEach(function(g) {
-        g.items.sort(function(a, b) { return a.coords[0] - b.coords[0]; });
-        for (let i = 0; i < g.items.length - 1; i++) {
-          const A = g.items[i], B = g.items[i + 1];
-          const d = PathFinder.dist(A.coords, B.coords);
-          if (d <= maxCorridorDistance) {
-            PathFinder.addEdge(graph, A.id + "_" + f, B.id + "_" + f, d);
-          }
-        }
-      });
-    });
-
-    // 6) Лестницы между этажами
-    const floors = Object.keys(this.points).map(Number).sort();
-    for (let i = 0; i < floors.length - 1; i++) {
-      const f1 = floors[i], f2 = floors[i + 1];
-      const stairs1 = this.points[f1].filter(function(p) { return p.type === 'stair'; });
-      const stairs2 = this.points[f2].filter(function(p) { return p.type === 'stair'; });
-
-      stairs1.forEach(function(s1) {
-        stairs2.forEach(function(s2) {
-          if (s1.id === s2.id) {
-            PathFinder.addEdge(graph, s1.id + "_" + f1, s2.id + "_" + f2, 10);
-            console.log("Связаны лестницы:  " + s1.id + "_" + f1 + " <-> " + s2.id + "_" + f2);
-          }
-        });
-      });
+  drawRoute(path, currentFloor) {
+    if (this.routeLine) {
+      this. map.removeLayer(this.routeLine);
+      this.routeLine = null;
     }
 
-    console.log("Граф построен (узлов):", graph.size);
-    return graph;
-  }
+    if (!path || path. length === 0) return;
 
-  findPath(fromId, toId) {
-    const self = this;
-    let startKeys = [];
-    let endKeys = [];
-
-    this.graph.forEach(function(node, key) {
-      if (node.id === fromId) startKeys.push(key);
-      if (node.id === toId) endKeys.push(key);
+    const keys = path.filter(function(k) {
+      const parts = k.split("_");
+      const floor = Number(parts[parts.length - 1]);
+      return floor === currentFloor;
     });
 
-    if (startKeys.length === 0) {
-      return { path: null, error: "Точка \"" + fromId + "\" не найдена" };
-    }
-    if (endKeys.length === 0) {
-      return { path: null, error: "Точка \"" + toId + "\" не найдена" };
-    }
+    if (keys.length < 1) return;
 
-    console.log("Ищем маршрут от " + fromId + " до " + toId);
+    const nodes = this.getPathNodes(keys, currentFloor);
+    if (nodes. length < 1) return;
 
-    const path = this.findShortestPath(fromId, toId);
+    const poly = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const cur = nodes[i];
+      const prev = nodes[i - 1];
 
-    if (! path || path.length === 0) {
-      return { path: null, error:  'Маршрут не найден' };
-    }
+      if (! prev) {
+        poly.push(cur. coords);
+        continue;
+      }
 
-    let distance = 0;
-    for (let i = 0; i < path.length - 1; i++) {
-      const nodeA = this.graph.get(path[i]);
-      const nodeB = this.graph.get(path[i + 1]);
-      if (nodeA && nodeB) {
-        distance += PathFinder.dist(nodeA.coords, nodeB.coords);
+      const isDoorPrev = prev.type === "door";
+      const isDoorCur = cur.type === "door";
+      const isCorrPrev = prev.type === "corridor";
+      const isCorrCur = cur. type === "corridor";
+
+      if ((isDoorPrev && isCorrCur) || (isCorrPrev && isDoorCur)) {
+        const elbow = [prev.coords[0], cur.coords[1]];
+        if (! this.samePoint(poly[poly.length - 1], prev.coords)) poly.push(prev.coords);
+        if (!this.samePoint(poly[poly.length - 1], elbow)) poly.push(elbow);
+        if (!this.samePoint(poly[poly.length - 1], cur.coords)) poly.push(cur.coords);
+      } else {
+        if (!this.samePoint(poly[poly.length - 1], cur.coords)) poly.push(cur.coords);
       }
     }
 
-    console.log("Маршрут найден!  Длина:  " + distance.toFixed(1) + ", узлов: " + path.length);
-    return { path: path, distance: distance };
+    if (poly.length === 0) return;
+
+    if (poly.length === 1) {
+      this.routeLine = L.circleMarker(poly[0], {
+        radius: 7,
+        color: "green",
+        fillColor: "green",
+        fillOpacity:  0.6,
+        weight:  2
+      }).addTo(this. map);
+      return;
+    }
+
+    this.routeLine = L.polyline(poly, { color: "green", weight: 3 }).addTo(this.map);
   }
 
-  findShortestPath(startId, endId) {
-    const self = this;
-    console.log("Поиск пути от " + startId + " до " + endId);
+  getPathNodes(pathKeys, floor) {
+    var result = [];
+    var pointsArr = (CONFIG.points[floor] || []).filter(function(p) { return p != null; });
+    var corridorArr = (CONFIG.corridorNodes[floor] || []).filter(function(n) { return n != null; });
 
-    let startNodeId = null;
-    for (const entry of this.graph.entries()) {
-      const id = entry[0];
-      const node = entry[1];
-      if (node.id === startId) { startNodeId = id; break; }
-    }
-    if (!startNodeId) {
-      console.error("Начальная точка \"" + startId + "\" не найдена в графе");
-      return [];
-    }
+    for (var i = 0; i < pathKeys.length; i++) {
+      var key = pathKeys[i];
+      var parts = key.split("_");
+      var floorFromKey = Number(parts[parts. length - 1]);
 
-    const queue = [startNodeId];
-    const visited = new Set();
-    const parent = new Map();
+      if (floorFromKey !== floor) continue;
 
-    while (queue.length) {
-      const cur = queue.shift();
-      if (visited.has(cur)) continue;
-      visited.add(cur);
+      var id = parts.slice(0, -1).join("_");
 
-      const node = this.graph.get(cur);
-      if (!node) continue;
-
-      if (node.id === endId) {
-        const path = [];
-        let u = cur;
-        while (u) { path.unshift(u); u = parent.get(u); }
-        console.log("Путь найден:", path);
-        return path;
+      // Ищем в points
+      var node = null;
+      for (var j = 0; j < pointsArr.length; j++) {
+        if (pointsArr[j].id === id) {
+          node = pointsArr[j];
+          break;
+        }
       }
 
-      node.neighbors.forEach(function(n) {
-        if (!visited.has(n.id) && ! parent.has(n.id)) {
-          parent.set(n.id, cur);
-          queue.push(n.id);
+      if (node) {
+        result.push({
+          id: node.id,
+          type: node.type,
+          coords: node.coords
+        });
+        continue;
+      }
+
+      // Ищем в corridorNodes
+      for (var k = 0; k < corridorArr. length; k++) {
+        if (corridorArr[k].id === id) {
+          node = corridorArr[k];
+          break;
         }
-      });
+      }
+
+      if (node) {
+        result. push({
+          id: node.id,
+          type: node.type || "corridor",
+          coords: node.coords
+        });
+        continue;
+      }
     }
 
-    console.warn("Путь от \"" + startId + "\" до \"" + endId + "\" не найден");
-    return [];
+    return result;
+  }
+
+  samePoint(a, b) {
+    if (! a || !b) return false;
+    return Math.abs(a[0] - b[0]) < 0.01 && Math.abs(a[1] - b[1]) < 0.01;
+  }
+
+  highlightFloorButtons(path) {
+    var floorButtons = ["floor1", "floor2", "floor3", "floor4", "floor5"];
+    for (var i = 0; i < floorButtons.length; i++) {
+      var btn = document.getElementById(floorButtons[i]);
+      if (btn) {
+        btn. style.backgroundColor = "";
+        btn.classList.remove("route-start", "route-end", "route-through");
+      }
+    }
+
+    if (! path || path.length === 0) return;
+
+    var floorsInPath = {};
+    for (var i = 0; i < path.length; i++) {
+      var parts = path[i]. split("_");
+      var floor = Number(parts[parts. length - 1]);
+      if (!isNaN(floor)) floorsInPath[floor] = true;
+    }
+
+    var startParts = path[0].split("_");
+    var endParts = path[path.length - 1].split("_");
+    var startFloor = Number(startParts[startParts.length - 1]);
+    var endFloor = Number(endParts[endParts.length - 1]);
+
+    for (var floor in floorsInPath) {
+      floor = Number(floor);
+      var btn = document.getElementById("floor" + floor);
+      if (btn) {
+        if (floor === startFloor && floor === endFloor) {
+          btn. style.backgroundColor = "#90EE90";
+        } else if (floor === startFloor) {
+          btn. style.backgroundColor = "#ffcccc";
+          btn.classList.add("route-start");
+        } else if (floor === endFloor) {
+          btn.style.backgroundColor = "#ccffcc";
+          btn.classList.add("route-end");
+        } else {
+          btn.style.backgroundColor = "#ffffcc";
+          btn.classList.add("route-through");
+        }
+      }
+    }
   }
 }
