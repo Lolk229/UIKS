@@ -151,12 +151,14 @@ class PathFinder {
     for (let i = 0; i < floors.length - 1; i++) {
       const f1 = floors[i], f2 = floors[i + 1];
       const stairs1 = this.points[f1].filter(p => p.type === 'stair');
-      const stairs2 = this.points[f2].filter(p => p.type === 'stair');
+      const stairs2 = this.points[f2].filter(p => p. type === 'stair');
+
       stairs1.forEach(s1 => {
         stairs2.forEach(s2 => {
-          const d = PathFinder.dist(s1.coords, s2.coords);
-          if (d <= stairConnectionDistance) {
+          // Сравниваем по ID напрямую (теперь оба = "S1", "S2", etc.)
+          if (s1.id === s2.id) {
             PathFinder.addEdge(graph, `${s1.id}_${f1}`, `${s2.id}_${f2}`, 10);
+            console.log(`Связаны лестницы: ${s1.id}_${f1} <-> ${s2.id}_${f2}`);
           }
         });
       });
