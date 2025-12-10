@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration parameters
-const CONFIG = {
+const SCRIPT_CONFIG = {
   axisTolerance: 25,
   maxRoomToCorridorDistance: 65, // Increased to handle rooms further from corridors
   axisSpanMargin: 50,
@@ -54,15 +54,6 @@ try {
   console.error('Error loading config.js:', error.message);
   process.exit(1);
 }
-
-// Reset CONFIG to our script config
-const SCRIPT_CONFIG = {
-  axisTolerance: 25,
-  maxRoomToCorridorDistance: 65,
-  axisSpanMargin: 50,
-  doorAlignTolerance: 24,
-  doorPositionRatio: 0.6,
-};
 
 // Get rooms and corridor nodes for the specified floor
 const rooms = CONFIG_DATA.points[floor] || [];
@@ -331,27 +322,34 @@ if (applyChanges) {
   // We need to insert new doors at the end of corridorNodes[floor] array
   
   // Find the corridorNodes section for this floor
-  // Look for the pattern:  2: [\n  ... \n    ],
-  const floorStartPattern = new RegExp(`(\\s+${floor}:\\s*\\[)`, 'g');
-  let matches = [];
-  let match;
+  // Look for the pattern:  corridorNodes: { ... floor: [\n  ... \n    ],
   
-  // Find all matches for "2: [" pattern
-  while ((match = floorStartPattern.exec(configContent)) !== null) {
-    matches.push(match.index);
-  }
-  
-  // We need the one inside corridorNodes, which should be the second occurrence (first is in points)
-  if (matches.length < 2) {
-    console.error(`Could not find corridorNodes[${floor}] in config.js`);
+  // Strategy: Find "corridorNodes:" then find the specific floor entry
+  const corridorNodesIndex = configContent.indexOf('corridorNodes:');
+  if (corridorNodesIndex === -1) {
+    console.error('Could not find corridorNodes section in config.js');
     process.exit(1);
   }
   
-  const startIndex = matches[1] + configContent.substring(matches[1]).indexOf('[');
+  // From corridorNodes:, find the floor entry pattern
+  const floorPattern = new RegExp(`\\s+${floor}:\\s*\\[`, 'g');
+  let match;
+  let floorStartIndex = -1;
+  
+  // Start searching from corridorNodes section
+  const searchStart = configContent.substring(corridorNodesIndex);
+  match = floorPattern.exec(searchStart);
+  
+  if (!match) {
+    console.error(`Could not find ${floor}: [ in corridorNodes section`);
+    process.exit(1);
+  }
+  
+  floorStartIndex = corridorNodesIndex + match.index + searchStart.substring(match.index).indexOf('[');
   
   // Find the matching closing bracket
   let bracketCount = 1;
-  let endIndex = startIndex + 1;
+  let endIndex = floorStartIndex + 1;
   while (bracketCount > 0 && endIndex < configContent.length) {
     if (configContent[endIndex] === '[') bracketCount++;
     if (configContent[endIndex] === ']') bracketCount--;
@@ -364,7 +362,7 @@ if (applyChanges) {
   }
   
   // Extract the array content
-  const arrayContent = configContent.substring(startIndex + 1, endIndex - 1);
+  const arrayContent = configContent.substring(floorStartIndex + 1, endIndex - 1);
   
   // Generate door entries as strings
   const doorEntries = newDoors.map(door => {
@@ -383,7 +381,7 @@ if (applyChanges) {
   }
   
   // Replace the old content with new content
-  const updatedContent = configContent.substring(0, startIndex + 1) + newArrayContent + configContent.substring(endIndex - 1);
+  const updatedContent = configContent.substring(0, floorStartIndex + 1) + newArrayContent + configContent.substring(endIndex - 1);
   
   fs.writeFileSync(configPath, updatedContent, 'utf8');
   console.log(`✓ Updated config.js with ${newDoors.length} new doors`);
