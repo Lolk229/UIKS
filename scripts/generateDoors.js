@@ -330,14 +330,41 @@ if (applyChanges) {
   // Update config.js
   // We need to insert new doors at the end of corridorNodes[floor] array
   
-  // Find the position to insert new doors
-  const floorPattern = new RegExp(`(corridorNodes:\\s*{[^}]*${floor}:\\s*\\[)([\\s\\S]*?)(\\],\\s*(?:${floor + 1}|3|4):)`, 'm');
-  const match = configContent.match(floorPattern);
+  // Find the corridorNodes section for this floor
+  // Look for the pattern:  2: [\n  ... \n    ],
+  const floorStartPattern = new RegExp(`(\\s+${floor}:\\s*\\[)`, 'g');
+  let matches = [];
+  let match;
   
-  if (!match) {
+  // Find all matches for "2: [" pattern
+  while ((match = floorStartPattern.exec(configContent)) !== null) {
+    matches.push(match.index);
+  }
+  
+  // We need the one inside corridorNodes, which should be the second occurrence (first is in points)
+  if (matches.length < 2) {
     console.error(`Could not find corridorNodes[${floor}] in config.js`);
     process.exit(1);
   }
+  
+  const startIndex = matches[1] + configContent.substring(matches[1]).indexOf('[');
+  
+  // Find the matching closing bracket
+  let bracketCount = 1;
+  let endIndex = startIndex + 1;
+  while (bracketCount > 0 && endIndex < configContent.length) {
+    if (configContent[endIndex] === '[') bracketCount++;
+    if (configContent[endIndex] === ']') bracketCount--;
+    endIndex++;
+  }
+  
+  if (bracketCount !== 0) {
+    console.error('Could not find matching closing bracket for corridorNodes[' + floor + ']');
+    process.exit(1);
+  }
+  
+  // Extract the array content
+  const arrayContent = configContent.substring(startIndex + 1, endIndex - 1);
   
   // Generate door entries as strings
   const doorEntries = newDoors.map(door => {
@@ -345,26 +372,18 @@ if (applyChanges) {
     return `      { id: "${door.id}", type: "door", room: "${door.room}", coords: ${coordsStr} }`;
   }).join(',\n');
   
-  // Find the last door entry or last entry before the closing bracket
-  const existingContent = match[2];
-  
-  // Check if there's already content (need to add comma)
-  let newContent;
-  if (existingContent.trim().endsWith(',')) {
+  // Build the new array content
+  let newArrayContent;
+  if (arrayContent.trim().endsWith(',')) {
     // Already has a comma
-    newContent = match[1] + existingContent + '\n\n      // Generated doors for missing rooms\n' + doorEntries + '\n    ' + match[3];
+    newArrayContent = arrayContent + '\n\n      // Generated doors for missing rooms\n' + doorEntries + '\n    ';
   } else {
     // Need to add comma before new doors
-    const lastEntryMatch = existingContent.match(/([\s\S]*})\s*$/);
-    if (lastEntryMatch) {
-      newContent = match[1] + lastEntryMatch[1] + ',\n\n      // Generated doors for missing rooms\n' + doorEntries + '\n    ' + match[3];
-    } else {
-      // Empty array or only whitespace
-      newContent = match[1] + '\n      // Generated doors for missing rooms\n' + doorEntries + '\n    ' + match[3];
-    }
+    newArrayContent = arrayContent + ',\n\n      // Generated doors for missing rooms\n' + doorEntries + '\n    ';
   }
   
-  const updatedContent = configContent.replace(floorPattern, newContent);
+  // Replace the old content with new content
+  const updatedContent = configContent.substring(0, startIndex + 1) + newArrayContent + configContent.substring(endIndex - 1);
   
   fs.writeFileSync(configPath, updatedContent, 'utf8');
   console.log(`✓ Updated config.js with ${newDoors.length} new doors`);
