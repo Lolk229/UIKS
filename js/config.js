@@ -503,10 +503,21 @@ const CONFIG = {
       { id: "Б4-97", name: "Б4-97", coords: [1035, 3270], type: "room" },
       { id: "Б4-98", name: "Б4-98", coords: [680, 3325], type: "room" }, // Это щитовая, на нее можно забить, но она есть на плане
       { id: "Б4-99", name: "Б4-99", coords: [980, 3270], type: "room" },
+      { id: "Б4-100", name: "Б4-100", coords: [675, 3100], type: "room" },
       { id: "Б4-101", name: "Б4-101", coords: [895, 3270], type: "room" },
-
-
-
+      { id: "Б4-102", name: "Б4-102", coords: [675, 2895], type: "room" },
+      { id: "Б4-103", name: "Б4-103", coords: [575, 3315], type:  "room" },
+      { id: "Б4-104", name: "Б4-104", coords: [675, 2845], type: "room" },
+      { id: "Б4-105", name: "Б4-105", coords: [575, 3020], type: "room" },
+      { id: "Б4-106", name: "Б4-106", coords: [675, 2780], type: "room" },
+      { id: "Б4-107", name: "Б4-107", coords: [575, 2865], type:  "room" },
+      { id: "Б4-108", name: "Б4-108", coords: [675, 2660], type: "room" },
+      { id: "Б4-109", name: "Б4-109", coords: [575, 2710], type: "room" },
+      { id: "Б4-110", name: "Б4-110", coords: [675, 2460], type: "room" },
+      { id: "Б4-111", name: "Б4-111", coords: [575, 2665], type:  "room" },
+      { id: "Б4-112", name: "Б4-112", coords: [675, 2410], type: "room" },
+      { id: "Б4-113", name: "Б4-113", coords: [575, 2400], type: "room" },
+      { id: "Б4-115", name: "Б4-115", coords: [575, 2280], type:  "room" },
       { id: "S1", name: "Лестница 1", coords: [715, 1545], type: "stair" },
       { id: "S2", name: "Лестница 2", coords: [630, 545], type: "stair" },
       { id: "S3", name: "Лестница 3", coords: [1375, 700], type: "stair" },
@@ -519,6 +530,8 @@ const CONFIG = {
       { id: "Туалет1_4", name: "Туалет", coords: [680, 950], type: "toilet" },
       { id: "Туалет2_4", name: "Туалет", coords: [2150, 950], type: "toilet" },
       { id: "Туалет3_4", name: "Туалет", coords: [2150, 2890], type: "toilet" },
+      { id: "Туалет4_4", name: "Туалет", coords: [675, 3040], type: "toilet" },
+      { id: "Туалет5_4", name: "Туалет", coords: [675, 2945], type: "toilet" }
     ]
   },
 
